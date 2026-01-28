@@ -120,6 +120,20 @@ export default function ProductionPage() {
                 return undefined;
             };
 
+            // Helper to inject character traits into the prompt
+            const enhancePrompt = (originalPrompt: string) => {
+                let enhancedPrompt = originalPrompt;
+                const relevantChars = characters.filter(c => originalPrompt.toLowerCase().includes(c.name.toLowerCase()));
+
+                if (relevantChars.length > 0) {
+                    const traitsDescription = relevantChars.map(c => `${c.name}: ${c.traits}`).join(". ");
+                    enhancedPrompt = `${originalPrompt}. (Character details: ${traitsDescription})`;
+                }
+
+                console.log(`[Client] Enhanced Prompt: "${enhancedPrompt}"`);
+                return enhancedPrompt;
+            };
+
             // Generate Start Frame
             if (clip.visual_start) {
                 const referenceImageBase64 = await getReferenceForPrompt(clip.visual_start, clip.speaker);
@@ -127,7 +141,7 @@ export default function ProductionPage() {
                     const res = await fetch('/api/image/generate', {
                         method: 'POST',
                         body: JSON.stringify({
-                            prompt: clip.visual_start,
+                            prompt: enhancePrompt(clip.visual_start),
                             referenceImage: referenceImageBase64
                         })
                     });
@@ -152,7 +166,7 @@ export default function ProductionPage() {
                     const res = await fetch('/api/image/generate', {
                         method: 'POST',
                         body: JSON.stringify({
-                            prompt: clip.visual_end,
+                            prompt: enhancePrompt(clip.visual_end),
                             referenceImage: referenceImageBase64
                         })
                     });
@@ -176,11 +190,12 @@ export default function ProductionPage() {
 
         // Step B: Image-to-Animation (Video)
         // NOW that we have images, we can generate video
-        console.log("[Client] Starting Video Generation (Luma Mock)...");
+        console.log("[Client] Starting Video Generation (Google Veo 3 Fast)...");
         setSteps(s => ({ ...s, video: true })); // Mark as in-progress
 
         // Process Video Sequentially
         const videoClips = [...imageClips];
+
         for (const [i, clip] of videoClips.entries()) {
             // Only generate if we have images
             if (clip.generated_start_image) {
@@ -198,9 +213,12 @@ export default function ProductionPage() {
                     });
 
                     const data = await res.json();
+
                     if (data.video) {
                         videoClips[i].video = data.video;
                         videoClips[i].video_generated = true;
+                    } else {
+                        console.error(`[Client] No video in response for clip ${i}:`, data);
                     }
                 } catch (e) {
                     console.error(`[Video] Error clip ${i}`, e);
@@ -253,10 +271,24 @@ export default function ProductionPage() {
 
         // 3. Generate
         try {
+            // Helper to inject character traits into the prompt
+            const enhancePrompt = (originalPrompt: string) => {
+                let enhancedPrompt = originalPrompt;
+                const relevantChars = characters.filter(c => originalPrompt.toLowerCase().includes(c.name.toLowerCase()));
+
+                if (relevantChars.length > 0) {
+                    const traitsDescription = relevantChars.map(c => `${c.name}: ${c.traits}`).join(". ");
+                    enhancedPrompt = `${originalPrompt}. (Character details: ${traitsDescription})`;
+                }
+
+                console.log(`[Client] Enhanced Prompt: "${enhancedPrompt}"`);
+                return enhancedPrompt;
+            };
+
             const res = await fetch('/api/image/generate', {
                 method: 'POST',
                 body: JSON.stringify({
-                    prompt: prompt,
+                    prompt: enhancePrompt(prompt),
                     referenceImage: referenceImageBase64
                 })
             });
@@ -310,7 +342,7 @@ export default function ProductionPage() {
             {/* Pipeline Status */}
             <div className="grid grid-cols-3 gap-4">
                 <StepCard title="Step A: Audio Synthesis" status={steps.tts} icon="🎙️" tool="ElevenLabs (Live)" />
-                <StepCard title="Step B: Act-One Bridge" status={steps.video} icon="🎭" tool="Luma Dream Machine" />
+                <StepCard title="Step B: Act-One Bridge" status={steps.video} icon="🎭" tool="Google Veo 3 (Fast)" />
                 <StepCard title="Step C: Auto-Editor" status={steps.edit} icon="✂️" tool="StoryTeller Engine" />
             </div>
 

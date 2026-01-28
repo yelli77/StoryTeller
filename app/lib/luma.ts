@@ -1,5 +1,6 @@
+// Reliable test video (Flower)
+const MOCK_VIDEO_URL = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
 const LUMA_API_KEY = process.env.LUMA_API_KEY;
-const MOCK_VIDEO_URL = "https://cdn.pixabay.com/video/2024/02/05/199342-909786638_large.mp4"; // Placeholder neon abstract video
 
 export async function generateVideo(prompt: string, startImage: string, endImage: string) {
     console.log("[Luma Mock] Generating video for:", prompt.substring(0, 30));

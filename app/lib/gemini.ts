@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // This would typically come from an environment variable or settings context
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+const API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
 export async function analyzeCharacterImage(imageUrl: string) {
     if (!API_KEY) {
