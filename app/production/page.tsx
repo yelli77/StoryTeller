@@ -90,12 +90,11 @@ export default function ProductionPage() {
         setClips([...audioClips]);
         setSteps(s => ({ ...s, tts: true }));
 
-        // Step B: Image-to-Animation
-        setSteps(s => ({ ...s, video: true }));
-
-        // PROCESS IN PARALLEL for speed
         console.log("[Client] Starting parallel image generation...");
-        await Promise.all(updatedClips.map(async (clip, i) => {
+        // Use audioClips as base since it has the audio data
+        const imageClips = [...audioClips];
+
+        await Promise.all(imageClips.map(async (clip, i) => {
 
             // Helper to determine reference from visual description
             const getReferenceForPrompt = async (prompt: string, speaker: string) => {
@@ -134,14 +133,14 @@ export default function ProductionPage() {
                     });
                     const data = await res.json();
                     if (data.image) {
-                        updatedClips[i].generated_start_image = data.image; // Can be SVG string or Data URL
-                        updatedClips[i].is_start_svg = data.isSvg;
+                        imageClips[i].generated_start_image = data.image; // Can be SVG string or Data URL
+                        imageClips[i].is_start_svg = data.isSvg;
                     } else {
                         console.error(`[Client] START Image Gen Error:`, data.error);
-                        updatedClips[i].start_failed = true;
+                        imageClips[i].start_failed = true;
                     }
                 } catch (e) {
-                    updatedClips[i].start_failed = true;
+                    imageClips[i].start_failed = true;
                     console.error(`[Client] START for clip ${i} ERROR`, e);
                 }
             }
@@ -159,23 +158,57 @@ export default function ProductionPage() {
                     });
                     const data = await res.json();
                     if (data.image) {
-                        updatedClips[i].generated_end_image = data.image;
-                        updatedClips[i].is_end_svg = data.isSvg;
+                        imageClips[i].generated_end_image = data.image;
+                        imageClips[i].is_end_svg = data.isSvg;
                     } else {
                         console.error(`[Client] END Image Gen Error:`, data.error);
-                        updatedClips[i].end_failed = true;
+                        imageClips[i].end_failed = true;
                     }
                 } catch (e) {
-                    updatedClips[i].end_failed = true;
+                    imageClips[i].end_failed = true;
                     console.error(`[Client] END for clip ${i} ERROR`, e);
                 }
             }
         }));
 
         console.log("[Client] All parallel requests finished.");
-        setClips([...updatedClips]);
+        setClips([...imageClips]);
 
-        setSteps(s => ({ ...s, video: true }));
+        // Step B: Image-to-Animation (Video)
+        // NOW that we have images, we can generate video
+        console.log("[Client] Starting Video Generation (Luma Mock)...");
+        setSteps(s => ({ ...s, video: true })); // Mark as in-progress
+
+        // Process Video Sequentially
+        const videoClips = [...imageClips];
+        for (const [i, clip] of videoClips.entries()) {
+            // Only generate if we have images
+            if (clip.generated_start_image) {
+                try {
+                    // In a real app, we'd wait longer or poll. Mock is fast.
+                    if (i > 0) await new Promise(r => setTimeout(r, 500));
+
+                    const res = await fetch('/api/video/generate', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            prompt: `Cinematic shot of ${clip.visual_start}`,
+                            startImage: clip.generated_start_image,
+                            endImage: clip.generated_end_image
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (data.video) {
+                        videoClips[i].video = data.video;
+                        videoClips[i].video_generated = true;
+                    }
+                } catch (e) {
+                    console.error(`[Video] Error clip ${i}`, e);
+                }
+            }
+        }
+
+        setClips([...videoClips]);
 
         // Step C: Auto-Editor
         await new Promise(r => setTimeout(r, 1000));
@@ -277,7 +310,7 @@ export default function ProductionPage() {
             {/* Pipeline Status */}
             <div className="grid grid-cols-3 gap-4">
                 <StepCard title="Step A: Audio Synthesis" status={steps.tts} icon="🎙️" tool="ElevenLabs (Live)" />
-                <StepCard title="Step B: Act-One Bridge" status={steps.video} icon="🎭" tool="Runway/Hedra (Mock)" />
+                <StepCard title="Step B: Act-One Bridge" status={steps.video} icon="🎭" tool="Luma Dream Machine" />
                 <StepCard title="Step C: Auto-Editor" status={steps.edit} icon="✂️" tool="StoryTeller Engine" />
             </div>
 

@@ -33,7 +33,9 @@ export default function TimelineEditor({ clips, onRegenerate }: TimelineEditorPr
                             <div className="flex gap-2 h-64">
                                 {/* Start Frame */}
                                 <div className="flex-1 relative group rounded-lg overflow-hidden border border-[var(--glass-border)] bg-black">
-                                    <div className="absolute top-1 left-1 z-10 bg-black/70 text-[10px] text-white px-2 py-0.5 rounded backdrop-blur-md pointer-events-none">START</div>
+                                    <div className={`absolute top-1 left-1 z-10 text-[10px] text-white px-2 py-0.5 rounded backdrop-blur-md pointer-events-none ${clip.video ? 'bg-purple-600' : 'bg-black/70'}`}>
+                                        {clip.video ? 'VIDEO' : 'START'}
+                                    </div>
 
                                     {/* Actions Overlay */}
                                     <div className="absolute top-1 right-1 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -56,7 +58,16 @@ export default function TimelineEditor({ clips, onRegenerate }: TimelineEditorPr
                                         </button>
                                     </div>
 
-                                    {clip.generated_start_image ? (
+                                    {clip.video ? (
+                                        <video
+                                            src={clip.video}
+                                            className="w-full h-full object-cover cursor-pointer"
+                                            controls
+                                            autoPlay
+                                            loop
+                                            muted
+                                        />
+                                    ) : clip.generated_start_image ? (
                                         clip.is_start_svg ? (
                                             <div
                                                 className="w-full h-full bg-gray-900 cursor-pointer"
