@@ -1,0 +1,34 @@
+[
+  {
+    "id": "1",
+    "name": "Clara",
+    "role": "The Clumsy Naive One",
+    "traits": "Wears glasses, tries to sound smart but fails, endearing.",
+    "voiceId": "ElevenLabs_Clara_v1",
+    "image": "/uploads/1769595533177-grok-image-43b46a6d-dc21-4607-a64f-1011331680bd.png"
+  },
+  {
+    "id": "2",
+    "name": "Ben",
+    "role": "The Rational Boyfriend",
+    "traits": "Always tired, sarcastic, tries to use logic against emotion.",
+    "voiceId": "ElevenLabs_Ben_v2",
+    "image": "/placeholder-ben.jpg"
+  },
+  {
+    "id": "1769595416520",
+    "name": "Emily",
+    "role": "The Chill Best Friend",
+    "traits": "Emily ist der Gegenpol zu den Konflikten. Sie ist oft diejenige, die zweideutige Witze erst spät versteht oder durch ihre charmante Art Situationen entschärft (oder unbewusst erst richtig kompliziert macht). Sie verkörpert den „sexy & cute“ Faktor und spricht die Sehnsucht nach Harmonie an.",
+    "voiceId": "",
+    "image": "/uploads/1769595391317-grok-image-c0d5e27e-d7a9-437b-b5bd-b82fc1e3f2de.png"
+  },
+  {
+    "id": "1769595634590",
+    "name": "Mia",
+    "role": "Die Drama-Queen / Die Komplizierte",
+    "traits": "Mia steht für die klassischen „Warum bist du sauer? – Gar nichts!“-Momente. Sie ist emotional, schnell beleidigt und liebt es, den männlichen Part herauszufordern. Ihr Schmollmund ist ihr Markenzeichen und sorgt für hohen Wiedererkennungswert in den Thumbnails, da starke Emotionen die Klickrate (CTR) massiv erhöhen.",
+    "voiceId": "",
+    "image": "/uploads/1769595579145-grok-image-905ac7e8-6545-4078-bb9f-684263a3acb0.png"
+  }
+]
