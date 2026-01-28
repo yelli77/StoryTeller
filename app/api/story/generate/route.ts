@@ -12,11 +12,11 @@ function getCharacters() {
 
 export async function POST(request: Request) {
     try {
-        const { topic, duration } = await request.json();
+        const { topic, duration, location } = await request.json();
         const characters = getCharacters();
 
         // Call Gemini
-        const script = await generateScript(topic, characters, duration);
+        const script = await generateScript(topic, characters, location, duration);
 
         return NextResponse.json({ script });
     } catch (error) {

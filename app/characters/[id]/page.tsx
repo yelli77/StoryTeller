@@ -8,12 +8,20 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
     const { id } = use(params);
 
     const router = useRouter();
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        role: string;
+        traits: string;
+        voiceId: string;
+        image: string;
+        isCamera?: boolean;
+    }>({
         name: '',
         role: '',
         traits: '',
         voiceId: '',
-        image: ''
+        image: '',
+        isCamera: false
     });
     const [loading, setLoading] = useState(true);
     const [analyzing, setAnalyzing] = useState(false);
@@ -130,6 +138,20 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
                             ✨ Gemini is analyzing facial consistency & style...
                         </div>
                     )}
+
+                    <div className="flex items-center gap-4 bg-[var(--surface)] p-4 rounded-lg border border-[var(--glass-border)]">
+                        <input
+                            type="checkbox"
+                            id="isCamera"
+                            checked={formData.isCamera || false}
+                            onChange={e => setFormData({ ...formData, isCamera: e.target.checked })}
+                            className="w-5 h-5 accent-[var(--primary)]"
+                        />
+                        <label htmlFor="isCamera" className="flex flex-col cursor-pointer">
+                            <span className="font-bold text-white">POV Character (Invisible)</span>
+                            <span className="text-xs text-gray-400">Character is the cameraperson and never shown fully in frame.</span>
+                        </label>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">

@@ -37,3 +37,22 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newCharacter);
 }
+
+export async function PUT(request: Request) {
+    try {
+        const body = await request.json();
+        const characters = getCharacters();
+
+        const index = characters.findIndex((c: any) => c.id === body.id);
+        if (index === -1) {
+            return NextResponse.json({ error: "Character not found" }, { status: 404 });
+        }
+
+        characters[index] = { ...characters[index], ...body };
+        saveCharacters(characters);
+
+        return NextResponse.json(characters[index]);
+    } catch (error) {
+        return NextResponse.json({ error: "Failed to update character" }, { status: 500 });
+    }
+}

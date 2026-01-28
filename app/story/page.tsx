@@ -1,27 +1,46 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ScriptTable from '../components/ScriptTable';
 import { useRouter } from 'next/navigation';
 
 export default function StoryPage() {
     const [topic, setTopic] = useState('');
     const [duration, setDuration] = useState(16);
+    const [locations, setLocations] = useState<any[]>([]);
+    const [selectedLocation, setSelectedLocation] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [script, setScript] = useState([]);
-    const router = useRouter(); // Initialize useRouter
+    const router = useRouter();
+
+    useEffect(() => {
+        fetch('/api/locations')
+            .then(res => res.json())
+            .then(data => {
+                setLocations(data);
+                if (data.length > 0) setSelectedLocation(data[0].id);
+            })
+            .catch(err => console.error("Failed to fetch locations", err));
+    }, []);
 
     const handleGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!topic) return;
 
         setLoading(true);
-        setScript([]); // Clear previous
+        setScript([]);
+
+        // Find full location object
+        const locationObj = locations.find(l => l.id === selectedLocation);
 
         try {
             const res = await fetch('/api/story/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic, duration })
+                body: JSON.stringify({
+                    topic,
+                    duration,
+                    location: locationObj
+                })
             });
             const data = await res.json();
             if (data.script) {
@@ -50,41 +69,55 @@ export default function StoryPage() {
             </div>
 
             <div className="glass-panel p-8">
-                <form onSubmit={handleGenerate} className="flex gap-4">
-                    <input
-                        type="text"
-                        className="flex-[3] bg-[var(--surface)] border border-[var(--glass-border)] rounded-xl p-4 text-white text-lg focus:border-[var(--primary)] focus:outline-none transition-colors"
-                        placeholder="Enter a topic (e.g. 'Ben forgets the anniversary again')"
-                        value={topic}
-                        onChange={e => setTopic(e.target.value)}
-                    />
-                    <div className="flex flex-col flex-1">
+                <form onSubmit={handleGenerate} className="flex flex-col gap-4">
+                    <div className="flex gap-4">
+                        <select
+                            className="flex-1 bg-[var(--surface)] border border-[var(--glass-border)] rounded-xl p-4 text-white text-lg focus:border-[var(--primary)] focus:outline-none transition-colors"
+                            value={selectedLocation}
+                            onChange={e => setSelectedLocation(e.target.value)}
+                        >
+                            {locations.map(loc => (
+                                <option key={loc.id} value={loc.id}>
+                                    📍 {loc.name}
+                                </option>
+                            ))}
+                        </select>
                         <input
                             type="number"
-                            className="h-full bg-[var(--surface)] border border-[var(--glass-border)] rounded-xl p-4 text-white text-lg focus:border-[var(--primary)] focus:outline-none transition-colors text-center"
+                            className="w-32 bg-[var(--surface)] border border-[var(--glass-border)] rounded-xl p-4 text-white text-lg focus:border-[var(--primary)] focus:outline-none transition-colors text-center"
                             placeholder="Sec"
                             value={duration}
                             onChange={e => setDuration(Number(e.target.value))}
                             min={5}
                             max={120}
                         />
-                        <span className="text-xs text-center text-gray-500 mt-1">Duration (sec)</span>
                     </div>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className={`btn-primary text-lg px-8 flex items-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                        {loading ? (
-                            <>
-                                <span className="animate-spin">⚡</span> Generating...
-                            </>
-                        ) : (
-                            <>
-                                <span>✨</span> Spin Scenario
-                            </>
-                        )}
-                    </button>
+
+                    <div className="flex gap-4">
+                        <input
+                            type="text"
+                            className="flex-[3] bg-[var(--surface)] border border-[var(--glass-border)] rounded-xl p-4 text-white text-lg focus:border-[var(--primary)] focus:outline-none transition-colors"
+                            placeholder="Enter a topic (e.g. 'Ben forgets the anniversary again')"
+                            value={topic}
+                            onChange={e => setTopic(e.target.value)}
+                        />
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className={`btn-primary text-lg px-8 flex items-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                            {loading ? (
+                                <>
+                                    <span className="animate-spin">⚡</span> Generating...
+                                </>
+                            ) : (
+                                <>
+                                    <span>✨</span> Spin Scenario
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </form>
             </div>
 

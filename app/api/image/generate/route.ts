@@ -12,17 +12,18 @@ export async function POST(request: Request) {
         console.log(`[API] Generating image for prompt: "${prompt.substring(0, 50)}..."`);
         const start = Date.now();
 
-        const image = await generateImage(prompt, referenceImage);
+        const { image, error: imgError } = await generateImage(prompt, referenceImage);
 
         const duration = Date.now() - start;
-        console.log(`[API] Image gen finished in ${duration}ms. Success: ${!!image}`);
+        console.log(`[API] Image gen finished in ${duration}ms. Success: ${!!image && !imgError}`);
 
-        // If image returns a data URL (Imagen), stick to "image" key.
-        // If it returns SVG string (Fallback), it might need differentiation, 
-        // but for now let's assume the frontend can handle data URL in an <img> tag or SVG in a div.
-        // To make it robust:
+        if (imgError) {
+            console.error("[API] Image Gen internal error:", imgError);
+            // We still return 200 so the frontend can handle the fallback logic with the error message
+            return NextResponse.json({ image, error: imgError, isSvg: false });
+        }
+
         const isSvg = image?.startsWith('<svg');
-
         return NextResponse.json({ image, isSvg });
     } catch (error) {
         return NextResponse.json({ error: 'Failed to generate image' }, { status: 500 });

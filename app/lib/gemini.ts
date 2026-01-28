@@ -31,20 +31,16 @@ export async function analyzeCharacterImage(imageUrl: string) {
     }
 }
 
-export async function generateScript(topic: string, characters: any[], duration: number = 30) {
+export async function generateScript(topic: string, characters: any[], location: any, duration: number = 30) {
+    // Dynamic POV Rules
+    const povCharacters = characters.filter(c => c.isCamera);
+    const povRules = povCharacters.length > 0
+        ? povCharacters.map(c => `- ${c.name.toUpperCase()} IST DER KAMERAMANN (POV). Er/Sie darf NIEMALS als Person zu sehen sein.\n            - Wenn ${c.name} spricht, zeigen wir die REAKTION des anderen Charakters ODER eine POV-Aufnahme (Hände).`).join("\n")
+        : "";
+
     if (!API_KEY) {
         console.warn("No Gemini API Key. Returning mock script.");
-
-        // Dynamic Mock: Use actual characters if available
-        const char1 = characters[0] || { name: 'Clara' };
-        const char2 = characters[1] || { name: 'Ben' };
-
-        return [
-            { time: "0:00", speaker: char1.name, action: "enters energetically", line: `You won't believe what happened!` },
-            { time: "0:05", speaker: char2.name, action: "looks skeptical", line: `Oh no, what did you do this time?` },
-            { time: "0:10", speaker: char1.name, action: "defensive", line: `Nothing! It was completely scientific!` },
-            { time: "0:15", speaker: char2.name, action: "facepalm", line: `Scientific... right.` }
-        ];
+        return getMockScript(characters);
     }
 
     try {
@@ -58,18 +54,33 @@ export async function generateScript(topic: string, characters: any[], duration:
             `- ${c.name} (${c.role}): ${c.traits}`
         ).join("\n");
 
+        const locationContext = location
+            ? `SETTING: ${location.name}\nDESCRIPTION: ${location.description}`
+            : "SETTING: Generic Indoor Scene";
+
         const prompt = `
         Du bist der Motor für einen viralen YouTube Shorts Kanal.
         Erstelle ein exakt ${duration} Sekunden langes Skript basierend auf diesem Thema: "${topic}"
         
         Nutze diese CHARAKTERE:
         ${characterContext}
+
+        ${locationContext}
         
         Regeln:
         1. Formatiere als JSON Array mit Keys: "time", "speaker", "action", "line", "visual_start" (Bildbeschreibung Start-Frame), "visual_end" (Bildbeschreibung End-Frame).
         2. Halte die Dialoge kurz, punchy und im Gen Z / TikTok Stil.
         3. Schreibe ALLES auf DEUTSCH (Dialoge und Regieanweisungen).
-        4. "visual_start" und "visual_end": Beschreibe detailliert den Look, die Pose und den Hintergrund für den Start- und End-Frame des Shots, um Konsistenz zu sichern.
+        4. "visual_start" und "visual_end": Erstelle einen präzisen Image Generation Prompt. Er MUSS beinhalten: 
+            a) Den NAMEN des Charakters im Fokus.
+            b) Die exakte Handlung/Pose. 
+            c) Den Hintergrund: "${location ? location.description : 'Generic Indoor Scene'}".
+            
+            WICHTIGE REGELN FÜR VISUALS:
+            ${povRules}
+            - NIEMALS den Kameramann im Visual beschreiben.
+            - KEINE fremden Personen im Hintergrund. NUR die bekannten Charaktere.
+            - Der Prompt soll auf Englisch sein.
         5. Fokus auf Comedy, Missverständnisse und Charakter-Konflikte.
         `;
 
@@ -79,8 +90,21 @@ export async function generateScript(topic: string, characters: any[], duration:
 
     } catch (error) {
         console.error("Gemini Script Gen Error:", error);
-        return [];
+        // Fallback to mock on error
+        return getMockScript(characters);
     }
+}
+
+function getMockScript(characters: any[]) {
+    const char1 = characters.find(c => !c.isCamera) || { name: 'Clara' };
+    const char2 = characters.find(c => c.name !== char1.name) || { name: 'Ben' };
+
+    return [
+        { time: "0:00", speaker: char1.name, action: "enters energetically", visual_start: `${char1.name} entering room`, visual_end: `${char1.name} smiling`, line: `You won't believe what happened!` },
+        { time: "0:05", speaker: char2.name, action: "looks skeptical", visual_start: `${char2.name} looking skeptical`, visual_end: `${char2.name} rolling eyes`, line: `Oh no, what did you do this time?` },
+        { time: "0:10", speaker: char1.name, action: "defensive", visual_start: `${char1.name} hands up defensive`, visual_end: `${char1.name} pouting`, line: `Nothing! It was completely scientific!` },
+        { time: "0:15", speaker: char2.name, action: "facepalm", visual_start: `POV hand facepalm`, visual_end: `POV shaking head`, line: `Scientific... right.` }
+    ];
 }
 
 export async function generateMetadata(topic: string) {
@@ -122,16 +146,20 @@ export async function generateMetadata(topic: string) {
     }
 }
 
+const FALLBACK_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="; // Grey Pixel
+
 export async function generateImage(prompt: string, referenceImageBase64?: string) {
     if (!API_KEY) {
-        return null; // Fallback handled by caller
+        console.error("❌ GenerateImage: No API Key found.");
+        return { image: FALLBACK_IMAGE, error: "No API Key configuration found." };
     }
 
     try {
-        // Use gemini-2.5-flash-image as per documentation
+        console.log("🎨 GenerateImage: Sending request...", prompt.substring(0, 30));
+        // Use gemini-2.5-flash-image as previously configured
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${API_KEY}`;
 
-        const parts: any[] = [{ text: `Cinematic shot, photorealistic, 8k, detailed: ${prompt}` }];
+        const parts: any[] = [{ text: `PHOTOGRAPH, RAW DATA, 8k, highly detailed, award winning photography. NO ANIME, NO CARTOON, NO ILLUSTRATION, NO 3D RENDER. NO OTHER PERSONS, NO BACKGROUND CROWD, ISOLATED SUBJECT. STRICTLY PHOTO-REALISTIC: ${prompt}` }];
 
         // Add reference image if provided
         if (referenceImageBase64) {
@@ -142,7 +170,7 @@ export async function generateImage(prompt: string, referenceImageBase64?: strin
                     data: base64Data
                 }
             });
-            parts.push({ text: "Use the attached image as the visual reference for the character. Maintain facial features, hair, and clothing style." });
+            parts.push({ text: "REFERENZBILD: Das angehängte Bild zeigt den Charakter. Generiere das neue Bild basierend auf diesem Aussehen. WICHTIG: Gesichtszüge, Frisur und Kleidung MÜSSEN zu 100% übereinstimmen. Die Person MUSS wiedererkennbar sein." });
         }
 
         const response = await fetch(url, {
@@ -164,8 +192,9 @@ export async function generateImage(prompt: string, referenceImageBase64?: strin
         });
 
         if (!response.ok) {
-            console.error(`Gemini Image API Error: ${response.status} ${response.statusText}`);
-            throw new Error(`Gemini Image API Error: ${response.statusText}`);
+            const errText = await response.text();
+            console.error(`Gemini Image API Error: ${response.status} ${errText}`);
+            return { image: FALLBACK_IMAGE, error: `API Error ${response.status}: ${errText}` };
         }
 
         const data = await response.json();
@@ -177,15 +206,15 @@ export async function generateImage(prompt: string, referenceImageBase64?: strin
         const mimeType = part?.inlineData?.mimeType || 'image/png';
 
         if (base64Image) {
-            return `data:${mimeType};base64,${base64Image}`;
+            return { image: `data:${mimeType};base64,${base64Image}`, error: null };
         }
 
         console.warn("No inlineData found in response:", JSON.stringify(data).substring(0, 200));
-        return null;
+        return { image: FALLBACK_IMAGE, error: "No image data in response" };
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Gemini Image generation failed:", error);
-        return null;
+        return { image: FALLBACK_IMAGE, error: error.message || "Unknown error" };
     }
 }
 

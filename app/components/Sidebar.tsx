@@ -8,6 +8,7 @@ export default function Sidebar() {
     const navItems = [
         { name: 'Dashboard', path: '/', icon: '🏠' },
         { name: 'Character Deck', path: '/characters', icon: '👥' },
+        { name: 'Location Deck', path: '/locations', icon: '📍' },
         { name: 'Story Engine', path: '/story', icon: '✍️' },
         { name: 'Production', path: '/production', icon: '🎬' },
         { name: 'Launchpad', path: '/launchpad', icon: '🚀' },
@@ -30,8 +31,8 @@ export default function Sidebar() {
                             key={item.path}
                             href={item.path}
                             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive
-                                    ? 'bg-[var(--primary)] text-white shadow-[0_0_15px_var(--primary-glow)]'
-                                    : 'text-gray-400 hover:bg-[var(--glass-border)] hover:text-white'
+                                ? 'bg-[var(--primary)] text-white shadow-[0_0_15px_var(--primary-glow)]'
+                                : 'text-gray-400 hover:bg-[var(--glass-border)] hover:text-white'
                                 }`}
                         >
                             <span className="text-xl">{item.icon}</span>
