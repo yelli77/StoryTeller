@@ -3,7 +3,7 @@ import { generateImage } from '@/app/lib/gemini';
 
 export async function POST(request: Request) {
     try {
-        const { prompt, referenceImage } = await request.json();
+        const { prompt, referenceImages } = await request.json();
 
         if (!prompt) {
             return NextResponse.json({ error: 'Prompt required' }, { status: 400 });
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
         console.log(`[API] Generating image for prompt: "${prompt.substring(0, 50)}..."`);
         const start = Date.now();
 
-        const { image, error: imgError } = await generateImage(prompt, referenceImage);
+        const { image, error: imgError } = await generateImage(prompt, referenceImages);
 
         const duration = Date.now() - start;
         console.log(`[API] Image gen finished in ${duration}ms. Success: ${!!image && !imgError}`);

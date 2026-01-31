@@ -68,13 +68,17 @@ export async function generateScript(topic: string, characters: any[], location:
         ${locationContext}
         
         Regeln:
-        1. Formatiere als JSON Array mit Keys: "time", "speaker", "action", "line", "visual_start" (Bildbeschreibung Start-Frame), "visual_end" (Bildbeschreibung End-Frame).
-        2. Halte die Dialoge kurz, punchy und im Gen Z / TikTok Stil.
-        3. Schreibe ALLES auf DEUTSCH (Dialoge und Regieanweisungen).
-        4. "visual_start" und "visual_end": Erstelle einen präzisen Image Generation Prompt. Er MUSS beinhalten: 
-            a) Den NAMEN des Charakters im Fokus.
-            b) Die exakte Handlung/Pose. 
-            c) Den Hintergrund: "${location ? location.description : 'Generic Indoor Scene'}".
+        1. Formatiere als JSON Array mit Keys: "time", "speaker", "action", "line", "visual_start", "duration".
+        2. "duration": MUSS ENTWEDER 5 ODER 10 sein (als Zahl).
+        3. WORTSCHATZ-LIMITS für perfekte Synchronisation:
+           - Wenn duration=5: max. 12 Wörter in "line".
+           - Wenn duration=10: max. 25 Wörter in "line".
+        4. "time": Berechne kumulative Zeitstempel (0:00, 0:05, 0:15 etc.).
+        5. "visual_start": Erstelle einen MASTER-PROMPT auf Englisch:
+           [CAMERA ANGLE], [CHARACTER], [ACTION], [LIGHTING], [LOCATION]. 
+           Beachte: Kamera sollte dynamisch sein (Slow zoom, Pan left, Dolly shot).
+        6. VARIETÄT: Füge gelegentlich Szenen ein, in denen "speaker" leer ist (oder "NARRATOR"), um reine Action-Szenen für das Pacing zu haben.
+        7. NIEMALS den Kameramann im Visual beschreiben (außer POV Hände).
             
             WICHTIGE REGELN FÜR VISUALS:
             ${povRules}
@@ -100,10 +104,10 @@ function getMockScript(characters: any[]) {
     const char2 = characters.find(c => c.name !== char1.name) || { name: 'Ben' };
 
     return [
-        { time: "0:00", speaker: char1.name, action: "enters energetically", visual_start: `${char1.name} entering room`, visual_end: `${char1.name} smiling`, line: `You won't believe what happened!` },
-        { time: "0:05", speaker: char2.name, action: "looks skeptical", visual_start: `${char2.name} looking skeptical`, visual_end: `${char2.name} rolling eyes`, line: `Oh no, what did you do this time?` },
-        { time: "0:10", speaker: char1.name, action: "defensive", visual_start: `${char1.name} hands up defensive`, visual_end: `${char1.name} pouting`, line: `Nothing! It was completely scientific!` },
-        { time: "0:15", speaker: char2.name, action: "facepalm", visual_start: `POV hand facepalm`, visual_end: `POV shaking head`, line: `Scientific... right.` }
+        { time: "0:00", duration: 5, speaker: char1.name, action: "enters energetically", visual_start: `${char1.name} entering room`, line: `You won't believe what happened!` },
+        { time: "0:05", duration: 5, speaker: char2.name, action: "looks skeptical", visual_start: `${char2.name} looking skeptical`, line: `Oh no, what did you do this time?` },
+        { time: "0:10", duration: 5, speaker: char1.name, action: "defensive", visual_start: `${char1.name} hands up defensive`, line: `Nothing! It was completely scientific!` },
+        { time: "0:15", duration: 5, speaker: char2.name, action: "facepalm", visual_start: `POV hand facepalm`, line: `Scientific... right.` }
     ];
 }
 
@@ -146,7 +150,7 @@ export async function generateMetadata(topic: string) {
     }
 }
 
-export async function generateImage(prompt: string, referenceImageBase64?: string) {
+export async function generateImage(prompt: string, referenceImages?: string[]) {
     if (!API_KEY) {
         return { image: null, error: "No API Key configuration found." };
     }
@@ -160,15 +164,18 @@ export async function generateImage(prompt: string, referenceImageBase64?: strin
 
             const parts: any[] = [{ text: `PHOTOGRAPH, RAW DATA, 8k, highly detailed, award winning photography. NO ANIME, NO CARTOON, NO ILLUSTRATION, NO 3D RENDER. NO OTHER PERSONS, NO BACKGROUND CROWD, ISOLATED SUBJECT. STRICTLY PHOTO-REALISTIC: ${prompt}` }];
 
-            if (referenceImageBase64) {
-                const base64Data = referenceImageBase64.split(',').pop();
-                parts.push({
-                    inlineData: {
-                        mimeType: "image/png",
-                        data: base64Data
-                    }
+            if (referenceImages && referenceImages.length > 0) {
+                referenceImages.forEach((img, idx) => {
+                    if (!img) return;
+                    const base64Data = img.split(',').pop();
+                    parts.push({
+                        inlineData: {
+                            mimeType: "image/png",
+                            data: base64Data
+                        }
+                    });
                 });
-                parts.push({ text: "REFERENZBILD: Das angehängte Bild zeigt den Charakter. Generiere das neue Bild basierend auf diesem Aussehen. WICHTIG: Gesichtszüge, Frisur und Kleidung MÜSSEN zu 100% übereinstimmen. Die Person MUSS wiedererkennbar sein." });
+                parts.push({ text: "REFERENZBILDER: Die angehängten Bilder zeigen die Charaktere für diese Szene. Generiere das neue Bild basierend auf ihrem Aussehen. WICHTIG: Gesichtszüge, Frisur und Kleidung MÜSSEN zu 100% mit den jeweiligen Referenzbildern übereinstimmen. Alle Personen im Bild MÜSSEN wiedererkennbar sein." });
             }
 
             const response = await fetch(url, {
@@ -178,7 +185,7 @@ export async function generateImage(prompt: string, referenceImageBase64?: strin
                     contents: [{ parts: parts }],
                     generationConfig: {
                         responseModalities: ["image"],
-                        imageConfig: { aspectRatio: "16:9" }
+                        imageConfig: { aspectRatio: "9:16" }
                     }
                 })
             });

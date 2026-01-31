@@ -1,10 +1,23 @@
 import { NextResponse } from 'next/server';
-import { generateKieVideo } from '@/app/lib/kie';
+import { generateKieVideo, generateKieLipSync } from '@/app/lib/kie';
 import { generateVideo } from '@/app/lib/veo';
 
 export async function POST(request: Request) {
     try {
-        const { prompt, startImage } = await request.json();
+        const { prompt, startImage, duration, type, audioUrl } = await request.json();
+
+        if (type === 'lipsync') {
+            if (!startImage || !audioUrl) {
+                return NextResponse.json({ error: 'Lip-sync requires startImage and audioUrl' }, { status: 400 });
+            }
+            console.log(`[Video API] Requesting Lip-Sync from Kie.ai (Infinitalk)`);
+            const result = await generateKieLipSync(prompt || "Talking avatar", startImage, audioUrl);
+            if (result.success && result.videoUrl) {
+                return NextResponse.json({ video: result.videoUrl, id: result.taskId });
+            } else {
+                return NextResponse.json({ error: result.error || "Lip-sync failed" }, { status: 500 });
+            }
+        }
 
         if (!prompt) {
             return NextResponse.json({ error: 'Prompt required' }, { status: 400 });
@@ -15,9 +28,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Image-to-Video requires a startImage. Please ensure the image generation step succeeded.' }, { status: 400 });
         }
 
-        console.log(`[Video API] Requesting video from Kie.ai. Prompt: "${prompt.substring(0, 30)}...", Image Size: ${Math.round(startImage.length / 1024)} KB`);
+        console.log(`[Video API] Requesting video from Kie.ai. Prompt: "${prompt.substring(0, 30)}...", Duration: ${duration}s, Image Size: ${Math.round(startImage.length / 1024)} KB`);
 
-        const result = await generateKieVideo(prompt, startImage);
+        const result = await generateKieVideo(prompt, startImage, duration?.toString() || "5");
 
         if (result.success && result.videoUrl) {
             console.log("[Video API] Kie.ai Success!");

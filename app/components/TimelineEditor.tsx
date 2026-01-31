@@ -12,10 +12,14 @@ export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo,
     const audioRefs = useRef<(HTMLAudioElement | null)[]>([]);
 
     const playAudioForVideo = (index: number) => {
-        const audio = audioRefs.current[index];
-        if (audio) {
-            audio.currentTime = 0;
-            audio.play().catch(e => console.warn("Audio play blocked", e));
+        const clip = clips[index];
+        // Only play external audio if the video is not a lip-synced one (which already has audio)
+        if (clip && clip.video_type !== 'lipsync') {
+            const audio = audioRefs.current[index];
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.warn("Audio play blocked", e));
+            }
         }
     };
 
@@ -163,7 +167,7 @@ export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo,
                                             <audio
                                                 ref={el => { audioRefs.current[i] = el; }}
                                                 controls
-                                                className="w-full h-6 opacity-80 hover:opacity-100 transition-opacity"
+                                                className={`w-full h-6 opacity-80 hover:opacity-100 transition-opacity ${clip.video_type === 'lipsync' ? 'hidden' : ''}`}
                                                 src={clip.audio}
                                             />
 

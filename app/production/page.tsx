@@ -79,16 +79,20 @@ export default function ProductionPage() {
         });
     };
 
-    // Helper to determine reference from visual description
-    const getReferenceForPrompt = async (prompt: string, speaker: string) => {
-        const mentionedChars = characters.filter(c => prompt.toLowerCase().includes(c.name.toLowerCase()));
-        let foundChar = mentionedChars.find(c => !c.isCamera);
-        if (!foundChar) {
-            const speakerChar = characters.find(c => c.name === speaker);
-            if (speakerChar && !speakerChar.isCamera) foundChar = speakerChar;
-        }
-        if (foundChar && foundChar.image) return await urlToBase64(foundChar.image);
-        return undefined;
+    // Helper to determine references from visual description
+    const getReferencesForPrompt = async (prompt: string) => {
+        const mentionedChars = characters.filter(c =>
+            prompt.toLowerCase().includes(c.name.toLowerCase()) && !c.isCamera
+        );
+
+        const refs = await Promise.all(
+            mentionedChars.map(async (c) => {
+                if (c.image) return await urlToBase64(c.image);
+                return null;
+            })
+        );
+
+        return refs.filter(r => r !== null) as string[];
     };
 
     // Helper to inject character traits into the prompt
@@ -140,10 +144,10 @@ export default function ProductionPage() {
 
             // Generate Image if missing
             if (!startImage) {
-                const ref = await getReferenceForPrompt(clip.visual_start, clip.speaker);
+                const refs = await getReferencesForPrompt(clip.visual_start);
                 const res = await fetch('/api/image/generate', {
                     method: 'POST',
-                    body: JSON.stringify({ prompt: enhancePrompt(clip.visual_start), referenceImage: ref })
+                    body: JSON.stringify({ prompt: enhancePrompt(clip.visual_start), referenceImages: refs })
                 });
                 const data = await res.json();
                 if (data.image) {
@@ -163,7 +167,7 @@ export default function ProductionPage() {
                 }
             }
 
-            // Generate Video
+            // Generate Video (Lip-Sync if dialogue, otherwise standard Kling)
             if (!startImage) {
                 console.warn(`[Sequential Gen] Skipping video for clip ${index} - No start image available.`);
                 setClips(prev => {
@@ -174,20 +178,40 @@ export default function ProductionPage() {
                 return;
             }
 
-            console.log(`[Client] Requesting video generation for clip ${index} with image size: ${Math.round(startImage.length / 1024)} KB`);
+            console.log(`[Client] Requesting video generation for clip ${index}`);
+
+            // Wait for audio if we want to do lip-sync
+            let audioUrl = clip.audio;
+            if (!audioUrl && clip.line?.trim()) {
+                console.log(`[Client] Waiting for audio of clip ${index} for lip-sync...`);
+                // Poll for audio up to 5 seconds
+                for (let j = 0; j < 10; j++) {
+                    await new Promise(r => setTimeout(r, 500));
+                    if (clipsRef.current[index]?.audio) {
+                        audioUrl = clipsRef.current[index].audio;
+                        break;
+                    }
+                }
+            }
+
+            const isLipSync = !!audioUrl && !!clip.line?.trim() && !clip.speaker?.includes("NARRATOR");
 
             const res = await fetch('/api/video/generate', {
                 method: 'POST',
                 body: JSON.stringify({
-                    prompt: `Cinematic shot of ${clip.visual_start}`,
-                    startImage: startImage
+                    prompt: isLipSync ? `Talking video of ${clip.speaker}. Only ${clip.speaker} is speaking, everyone else is silent.` : `Cinematic shot of ${clip.visual_start}`,
+                    startImage: startImage,
+                    duration: clip.duration || 5,
+                    type: isLipSync ? 'lipsync' : 'standard',
+                    audioUrl: isLipSync ? audioUrl : undefined,
+                    speaker: clip.speaker
                 })
             });
             const data = await res.json();
             setClips(prev => {
                 const next = [...prev];
                 if (data.video) {
-                    next[index] = { ...next[index], video: data.video, video_generated: true, video_failed: false };
+                    next[index] = { ...next[index], video: data.video, video_generated: true, video_failed: false, video_type: isLipSync ? 'lipsync' : 'standard' };
                 } else {
                     next[index] = { ...next[index], video_failed: true, videoError: data.error || "Video Generation Failed" };
                 }
@@ -256,12 +280,12 @@ export default function ProductionPage() {
 
         try {
             const clip = clips[index];
-            const ref = await getReferenceForPrompt(clip.visual_start, clip.speaker);
+            const refs = await getReferencesForPrompt(clip.visual_start);
             const res = await fetch('/api/image/generate', {
                 method: 'POST',
                 body: JSON.stringify({
                     prompt: enhancePrompt(clip.visual_start),
-                    referenceImage: ref
+                    referenceImages: refs
                 })
             });
             const data = await res.json();

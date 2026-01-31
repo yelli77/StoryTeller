@@ -11,13 +11,16 @@ const BASE_URL = 'https://api.kie.ai';
 const UPLOAD_URL = 'https://kieai.redpandaai.co/api/file-base64-upload';
 
 /**
- * Uploads a base64 image to Kie.ai's temporary storage to get a public URL
+ * Uploads a base64 file (image or audio) to Kie.ai's temporary storage
  */
-async function uploadImageToKie(base64Data: string): Promise<string | null> {
+async function uploadToKie(base64Data: string, type: 'image' | 'audio'): Promise<string | null> {
     if (!API_KEY) return null;
 
     try {
-        console.log("[Kie] Uploading image for video generation...");
+        const mimeType = type === 'image' ? 'image/png' : 'audio/mpeg';
+        const extension = type === 'image' ? 'png' : 'mp3';
+
+        console.log(`[Kie] Uploading ${type} for generation...`);
         const response = await fetch(UPLOAD_URL, {
             method: 'POST',
             headers: {
@@ -27,20 +30,20 @@ async function uploadImageToKie(base64Data: string): Promise<string | null> {
             body: JSON.stringify({
                 base64Data,
                 uploadPath: "storyteller",
-                fileName: `frame-${Date.now()}.png`
+                fileName: `${type}-${Date.now()}.${extension}`
             })
         });
 
         const data = await response.json();
         if (data.success && data.data && data.data.downloadUrl) {
-            console.log("[Kie] Image uploaded successfully:", data.data.downloadUrl);
+            console.log(`[Kie] ${type} uploaded successfully:`, data.data.downloadUrl);
             return data.data.downloadUrl;
         } else {
-            console.warn("[Kie] Upload failed, will try text-to-video fallback:", data.msg);
+            console.warn(`[Kie] ${type} upload failed:`, data.msg);
             return null;
         }
     } catch (e) {
-        console.error("[Kie] Image upload exception:", e);
+        console.error(`[Kie] ${type} upload exception:`, e);
         return null;
     }
 }
@@ -48,7 +51,7 @@ async function uploadImageToKie(base64Data: string): Promise<string | null> {
 /**
  * Starts a video generation task on Kie.ai using Kling 2.6
  */
-export async function startKieVideoGeneration(prompt: string, startImageUrl?: string): Promise<KieVideoGenerationResult> {
+export async function startKieVideoGeneration(prompt: string, startImageUrl?: string, duration: string = "5"): Promise<KieVideoGenerationResult> {
     if (!API_KEY) {
         console.error("[Kie] Missing KIE_AI_API_KEY in environment");
         return { success: false, error: "KIE_AI_API_KEY not configured" };
@@ -57,7 +60,7 @@ export async function startKieVideoGeneration(prompt: string, startImageUrl?: st
     // Attempt to upload image if provided
     let publicImageUrl = null;
     if (startImageUrl && startImageUrl.startsWith('data:')) {
-        publicImageUrl = await uploadImageToKie(startImageUrl);
+        publicImageUrl = await uploadToKie(startImageUrl, 'image');
     } else if (startImageUrl && startImageUrl.startsWith('http')) {
         publicImageUrl = startImageUrl;
     }
@@ -69,18 +72,19 @@ export async function startKieVideoGeneration(prompt: string, startImageUrl?: st
 
     try {
         const payload = {
-            model: "kling/v2-5-turbo-image-to-video-pro",
+            model: "kling/v2-5-turbo-image-to-video-pro", // Reverted to the pro version which is more robust
             callBackUrl: "https://example.com/webhook",
             input: {
                 prompt,
                 image_url: publicImageUrl,
-                duration: "5",
+                duration: duration,
+                ratio: "9:16",
                 cfg_scale: 0.5,
                 sound: true
             }
         };
 
-        console.log(`[Kie] Starting Image-to-Video with KLING 2.5 PRO: "${prompt.substring(0, 30)}..."`);
+        console.log(`[Kie] Starting Image-to-Video with KLING 2.5 PRO (${duration}s): "${prompt.substring(0, 30)}..."`);
         console.log("[Kie] Payload DEBUG:", JSON.stringify(payload, null, 2));
 
         const response = await fetch(`${BASE_URL}/api/v1/jobs/createTask`, {
@@ -150,10 +154,82 @@ export async function pollKieVideoStatus(taskId: string): Promise<KieVideoGenera
 }
 
 /**
+ * Step 1 (Lip-Sync): Create the Task
+ */
+export async function startKieLipSync(prompt: string, imageUrl: string, audioUrl: string): Promise<KieVideoGenerationResult> {
+    if (!API_KEY) return { success: false, error: "KIE_AI_API_KEY not configured" };
+
+    try {
+        // Upload image if it's base64
+        let publicImageUrl = imageUrl;
+        if (imageUrl.startsWith('data:')) {
+            const uploaded = await uploadToKie(imageUrl, 'image');
+            if (!uploaded) return { success: false, error: "Failed to upload image for lip-sync" };
+            publicImageUrl = uploaded;
+        }
+
+        // Upload audio if it's base64
+        let publicAudioUrl = audioUrl;
+        if (audioUrl.startsWith('data:')) {
+            const uploaded = await uploadToKie(audioUrl, 'audio');
+            if (!uploaded) return { success: false, error: "Failed to upload audio for lip-sync" };
+            publicAudioUrl = uploaded;
+        }
+
+        const payload = {
+            model: "infinitalk/from-audio",
+            input: {
+                prompt, // Added prompt as it's required by Kie.ai even for lip-sync
+                image_url: publicImageUrl,
+                audio_url: publicAudioUrl,
+                resolution: "720p"
+            }
+        };
+
+        console.log(`[Kie] Starting Lip-Sync (Infinitalk)`);
+
+        const response = await fetch(`${BASE_URL}/api/v1/jobs/createTask`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if (data.code === 200 && data.data && data.data.taskId) {
+            return { success: true, taskId: data.data.taskId };
+        } else {
+            return { success: false, error: data.msg || "Failed to start lip-sync" };
+        }
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+    }
+}
+
+/**
+ * Full lip-sync workflow: Start and Poll
+ */
+export async function generateKieLipSync(prompt: string, imageUrl: string, audioUrl: string): Promise<KieVideoGenerationResult> {
+    const startResult = await startKieLipSync(prompt, imageUrl, audioUrl);
+    if (!startResult.success || !startResult.taskId) return startResult;
+
+    const taskId = startResult.taskId;
+    for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 5000)); // Poll faster for lip-sync
+        const pollResult = await pollKieVideoStatus(taskId);
+        if (pollResult.videoUrl) return pollResult;
+        if (!pollResult.success) return pollResult;
+    }
+    return { success: false, error: "Lip-Sync timed out" };
+}
+
+/**
  * Full generation workflow: Start and Poll
  */
-export async function generateKieVideo(prompt: string, startImageUrl?: string): Promise<KieVideoGenerationResult> {
-    const startResult = await startKieVideoGeneration(prompt, startImageUrl);
+export async function generateKieVideo(prompt: string, startImageUrl?: string, duration: string = "5"): Promise<KieVideoGenerationResult> {
+    const startResult = await startKieVideoGeneration(prompt, startImageUrl, duration);
     if (!startResult.success || !startResult.taskId) {
         return startResult;
     }
