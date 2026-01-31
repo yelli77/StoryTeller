@@ -21,13 +21,14 @@ export async function generateVideo(
     return new Promise((resolve, reject) => {
         const ws = new WebSocket(comfyUIUrl);
         let clientId: string | null = null;
+        let isIntentionalClosure = false;
 
         ws.on("open", async () => {
             functions.logger.info("Connected to ComfyUI WebSocket");
 
             try {
                 // Load workflow template
-                const workflowPath = path.join(__dirname, "../workflows/wan-2.1-i2v.json");
+                const workflowPath = path.join(__dirname, "../workflows/hunyuan-video.json");
                 const workflowTemplate = JSON.parse(fs.readFileSync(workflowPath, "utf-8"));
 
                 // Inject parameters into workflow
@@ -47,6 +48,8 @@ export async function generateVideo(
 
                 functions.logger.info("Workflow sent to ComfyUI");
             } catch (error) {
+                isIntentionalClosure = true;
+                ws.close();
                 reject(error);
             }
         });
@@ -61,13 +64,21 @@ export async function generateVideo(
                     functions.logger.info(`Video generated: ${videoPath}`);
 
                     // Download video from ComfyUI and upload to Firebase Storage
-                    const videoUrl = await uploadVideoToStorage(comfyUIUrl, videoPath);
-                    ws.close();
-                    resolve(videoUrl);
+                    try {
+                        const videoUrl = await uploadVideoToStorage(comfyUIUrl, videoPath);
+                        isIntentionalClosure = true;
+                        ws.close();
+                        resolve(videoUrl);
+                    } catch (error) {
+                        isIntentionalClosure = true;
+                        ws.close();
+                        reject(error);
+                    }
                 }
 
                 // Check for errors
                 if (message.type === "execution_error") {
+                    isIntentionalClosure = true;
                     ws.close();
                     reject(new Error(`ComfyUI execution error: ${JSON.stringify(message.data)}`));
                 }
@@ -77,19 +88,30 @@ export async function generateVideo(
         });
 
         ws.on("error", (error) => {
-            functions.logger.error("WebSocket error:", error);
-            reject(error);
+            if (!isIntentionalClosure) {
+                functions.logger.error("WebSocket error:", error);
+                reject(error);
+            }
         });
 
-        ws.on("close", () => {
-            functions.logger.info("WebSocket connection closed");
+        ws.on("close", (code, reason) => {
+            if (!isIntentionalClosure) {
+                const reasonStr = reason?.toString() || 'Unknown reason';
+                functions.logger.info(`WebSocket connection closed unexpectedly: code=${code}, reason=${reasonStr}`);
+                reject(new Error(`WebSocket connection closed unexpectedly: ${reasonStr}`));
+            } else {
+                functions.logger.info("WebSocket connection closed intentionally");
+            }
         });
 
-        // Timeout after 10 minutes
+        // Timeout after 15 minutes
         setTimeout(() => {
-            ws.close();
-            reject(new Error("Video generation timed out after 10 minutes"));
-        }, 10 * 60 * 1000);
+            if (!isIntentionalClosure) {
+                isIntentionalClosure = true;
+                ws.close();
+                reject(new Error("Video generation timed out after 15 minutes"));
+            }
+        }, 15 * 60 * 1000);
     });
 }
 
@@ -113,7 +135,7 @@ function injectParameters(workflow: any, params: VideoGenerationParams): any {
  * Download the generated video from ComfyUI and upload it to Firebase Storage.
  */
 async function uploadVideoToStorage(comfyUIUrl: string, videoPath: string): Promise<string> {
-    const baseUrl = comfyUIUrl.replace("ws://", "http://").replace("/ws", "");
+    const baseUrl = comfyUIUrl.replace("wss://", "https://").replace("ws://", "http://").replace("/ws", "");
     const videoUrl = `${baseUrl}/view?filename=${encodeURIComponent(videoPath)}`;
 
     // Download video
