@@ -195,28 +195,57 @@ export default function ProductionPage() {
             }
 
             const isLipSync = !!audioUrl && !!clip.line?.trim() && !clip.speaker?.includes("NARRATOR");
+            const useRunPod = process.env.NEXT_PUBLIC_USE_RUNPOD === 'true';
 
-            const res = await fetch('/api/video/generate', {
-                method: 'POST',
-                body: JSON.stringify({
-                    prompt: isLipSync ? `Talking video of ${clip.speaker}. Only ${clip.speaker} is speaking, everyone else is silent.` : `Cinematic shot of ${clip.visual_start}`,
-                    startImage: startImage,
-                    duration: clip.duration || 5,
-                    type: isLipSync ? 'lipsync' : 'standard',
+            if (useRunPod) {
+                // RunPod + ComfyUI via Firestore
+                const { createVideoRequest, subscribeToVideoRequest } = await import('../lib/runpod');
+
+                const requestId = await createVideoRequest({
+                    imageUrl: startImage,
                     audioUrl: isLipSync ? audioUrl : undefined,
-                    speaker: clip.speaker
-                })
-            });
-            const data = await res.json();
-            setClips(prev => {
-                const next = [...prev];
-                if (data.video) {
-                    next[index] = { ...next[index], video: data.video, video_generated: true, video_failed: false, video_type: isLipSync ? 'lipsync' : 'standard' };
-                } else {
-                    next[index] = { ...next[index], video_failed: true, videoError: data.error || "Video Generation Failed" };
-                }
-                return next;
-            });
+                    prompt: isLipSync ? `Talking video of ${clip.speaker}. Only ${clip.speaker} is speaking, everyone else is silent.` : `Cinematic shot of ${clip.visual_start}`,
+                    duration: clip.duration || 5,
+                });
+
+                // Subscribe to real-time updates
+                const unsubscribe = subscribeToVideoRequest(requestId, (request) => {
+                    setClips(prev => {
+                        const next = [...prev];
+                        if (request.status === 'completed' && request.videoUrl) {
+                            next[index] = { ...next[index], video: request.videoUrl, video_generated: true, video_failed: false, video_type: isLipSync ? 'lipsync' : 'standard' };
+                            unsubscribe(); // Stop listening after completion
+                        } else if (request.status === 'failed') {
+                            next[index] = { ...next[index], video_failed: true, videoError: request.error || "Video Generation Failed" };
+                            unsubscribe();
+                        }
+                        return next;
+                    });
+                });
+            } else {
+                // Kie.ai (existing implementation)
+                const res = await fetch('/api/video/generate', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        prompt: isLipSync ? `Talking video of ${clip.speaker}. Only ${clip.speaker} is speaking, everyone else is silent.` : `Cinematic shot of ${clip.visual_start}`,
+                        startImage: startImage,
+                        duration: clip.duration || 5,
+                        type: isLipSync ? 'lipsync' : 'standard',
+                        audioUrl: isLipSync ? audioUrl : undefined,
+                        speaker: clip.speaker
+                    })
+                });
+                const data = await res.json();
+                setClips(prev => {
+                    const next = [...prev];
+                    if (data.video) {
+                        next[index] = { ...next[index], video: data.video, video_generated: true, video_failed: false, video_type: isLipSync ? 'lipsync' : 'standard' };
+                    } else {
+                        next[index] = { ...next[index], video_failed: true, videoError: data.error || "Video Generation Failed" };
+                    }
+                    return next;
+                });
+            }
         } catch (e) {
             console.error(`[Sequential Gen] Error for clip ${index}`, e);
             setClips(prev => {
