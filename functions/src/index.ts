@@ -28,6 +28,11 @@ export const onVideoRequestCreated = functions.firestore
 
             // Step 2: Wait for Pod to be ready
             const podInfo = await getPodStatus(podId);
+
+            // Step 2.5: Wait for ComfyUI to start (it needs time to boot)
+            functions.logger.info(`[${requestId}] Pod is ready. Waiting 30s for ComfyUI to start...`);
+            await new Promise(resolve => setTimeout(resolve, 30000)); // 30 seconds
+
             const comfyUIUrl = `ws://${podInfo.ip}:8188/ws`;
 
             // Step 3: Connect to ComfyUI and generate video

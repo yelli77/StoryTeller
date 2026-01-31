@@ -1,8 +1,8 @@
 import * as functions from "firebase-functions";
 
 const RUNPOD_API_KEY = functions.config().runpod?.api_key || process.env.RUNPOD_API_KEY;
-const RUNPOD_TEMPLATE_ID = functions.config().runpod?.template_id || process.env.RUNPOD_TEMPLATE_ID;
-const RUNPOD_API_URL = "https://api.runpod.io/v2";
+const RUNPOD_POD_ID = functions.config().runpod?.pod_id || process.env.RUNPOD_POD_ID;
+const RUNPOD_GRAPHQL_URL = "https://api.runpod.io/graphql";
 
 interface PodInfo {
     id: string;
@@ -11,20 +11,27 @@ interface PodInfo {
 }
 
 /**
- * Start a new RunPod instance with the specified template (RTX 5090 + ComfyUI).
+ * Start (resume) an existing RunPod instance.
+ * Since we have a Pod ID, we use the Pods API, not Serverless.
  */
 export async function startPod(): Promise<string> {
-    const response = await fetch(`${RUNPOD_API_URL}/${RUNPOD_TEMPLATE_ID}/run`, {
+    // GraphQL mutation to resume the pod
+    const mutation = `
+    mutation {
+      podResume(input: {podId: "${RUNPOD_POD_ID}"}) {
+        id
+        desiredStatus
+      }
+    }
+  `;
+
+    const response = await fetch(RUNPOD_GRAPHQL_URL, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${RUNPOD_API_KEY}`,
         },
-        body: JSON.stringify({
-            input: {},
-            // Optional: specify GPU type
-            gpuTypeId: "NVIDIA RTX 5090",
-        }),
+        body: JSON.stringify({ query: mutation }),
     });
 
     if (!response.ok) {
@@ -33,7 +40,12 @@ export async function startPod(): Promise<string> {
     }
 
     const data = await response.json();
-    return data.id;
+
+    if (data.errors) {
+        throw new Error(`RunPod GraphQL error: ${JSON.stringify(data.errors)}`);
+    }
+
+    return RUNPOD_POD_ID;
 }
 
 /**
@@ -45,10 +57,32 @@ export async function getPodStatus(podId: string): Promise<PodInfo> {
     const delayMs = 5000; // Check every 5 seconds
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const response = await fetch(`${RUNPOD_API_URL}/${RUNPOD_TEMPLATE_ID}/status/${podId}`, {
+        const query = `
+      query {
+        pod(input: {podId: "${podId}"}) {
+          id
+          runtime {
+            uptimeInSeconds
+            ports {
+              ip
+              isIpPublic
+              privatePort
+              publicPort
+              type
+            }
+          }
+          desiredStatus
+        }
+      }
+    `;
+
+        const response = await fetch(RUNPOD_GRAPHQL_URL, {
+            method: "POST",
             headers: {
+                "Content-Type": "application/json",
                 "Authorization": `Bearer ${RUNPOD_API_KEY}`,
             },
+            body: JSON.stringify({ query }),
         });
 
         if (!response.ok) {
@@ -56,18 +90,28 @@ export async function getPodStatus(podId: string): Promise<PodInfo> {
         }
 
         const data = await response.json();
-        const status = data.status;
 
-        if (status === "COMPLETED" || status === "RUNNING") {
+        if (data.errors) {
+            throw new Error(`RunPod GraphQL error: ${JSON.stringify(data.errors)}`);
+        }
+
+        const pod = data.data?.pod;
+        const status = pod?.desiredStatus;
+
+        if (status === "RUNNING" && pod?.runtime) {
+            // Find the public IP from ports
+            const publicPort = pod.runtime.ports?.find((p: any) => p.isIpPublic);
+            const ip = publicPort?.ip || pod.runtime.ports?.[0]?.ip;
+
             return {
                 id: podId,
-                ip: data.ip || data.output?.ip,
+                ip: ip,
                 status,
             };
         }
 
-        if (status === "FAILED") {
-            throw new Error(`Pod ${podId} failed to start`);
+        if (status === "EXITED" || status === "FAILED") {
+            throw new Error(`Pod ${podId} is in ${status} state`);
         }
 
         // Wait before next attempt
@@ -81,11 +125,22 @@ export async function getPodStatus(podId: string): Promise<PodInfo> {
  * Stop a RunPod instance to avoid idle charges.
  */
 export async function stopPod(podId: string): Promise<void> {
-    const response = await fetch(`${RUNPOD_API_URL}/${RUNPOD_TEMPLATE_ID}/cancel/${podId}`, {
+    const mutation = `
+    mutation {
+      podStop(input: {podId: "${podId}"}) {
+        id
+        desiredStatus
+      }
+    }
+  `;
+
+    const response = await fetch(RUNPOD_GRAPHQL_URL, {
         method: "POST",
         headers: {
+            "Content-Type": "application/json",
             "Authorization": `Bearer ${RUNPOD_API_KEY}`,
         },
+        body: JSON.stringify({ query: mutation }),
     });
 
     if (!response.ok) {
