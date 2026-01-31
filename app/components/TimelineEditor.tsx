@@ -1,12 +1,23 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface TimelineEditorProps {
     clips: any[];
-    onRegenerate: (index: number, type: 'start' | 'end') => void;
+    onRegenerate: (index: number) => void;
+    onRegenerateVideo: (index: number) => void;
+    onGenerateNext: (index: number) => void;
 }
 
-export default function TimelineEditor({ clips, onRegenerate }: TimelineEditorProps) {
+export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo, onGenerateNext }: TimelineEditorProps) {
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+    const audioRefs = useRef<(HTMLAudioElement | null)[]>([]);
+
+    const playAudioForVideo = (index: number) => {
+        const audio = audioRefs.current[index];
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(e => console.warn("Audio play blocked", e));
+        }
+    };
 
     if (!clips || clips.length === 0) {
         return (
@@ -31,7 +42,7 @@ export default function TimelineEditor({ clips, onRegenerate }: TimelineEditorPr
 
                             {/* Visuals Container */}
                             <div className="flex gap-2 h-64">
-                                {/* Start Frame */}
+                                {/* Main Visual Frame (Sequential) */}
                                 <div className="flex-1 relative group rounded-lg overflow-hidden border border-[var(--glass-border)] bg-black">
                                     <div className={`absolute top-1 left-1 z-10 text-[10px] text-white px-2 py-0.5 rounded backdrop-blur-md pointer-events-none ${clip.video ? 'bg-purple-600' : 'bg-black/70'}`}>
                                         {clip.video ? 'VIDEO' : 'START'}
@@ -39,17 +50,20 @@ export default function TimelineEditor({ clips, onRegenerate }: TimelineEditorPr
 
                                     {/* Actions Overlay */}
                                     <div className="absolute top-1 right-1 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); onRegenerate(i, 'start'); }}
-                                            className="bg-black/70 hover:bg-[var(--primary)] text-white p-1.5 rounded backdrop-blur-md transition-colors"
-                                            title="Regenerate Image"
-                                        >
-                                            ↻
-                                        </button>
+                                        {!clip.video && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onRegenerate(i); }}
+                                                className="bg-black/70 hover:bg-[var(--primary)] text-white p-1.5 rounded backdrop-blur-md transition-colors"
+                                                title="Regenerate Image"
+                                            >
+                                                ↻
+                                            </button>
+                                        )}
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (clip.generated_start_image) setZoomedImage(clip.generated_start_image);
+                                                if (clip.video) setZoomedImage(clip.video); // Zoom video if exists? Or just image
+                                                else if (clip.generated_start_image) setZoomedImage(clip.generated_start_image);
                                             }}
                                             className="bg-black/70 hover:bg-white/20 text-white p-1.5 rounded backdrop-blur-md transition-colors"
                                             title="Zoom"
@@ -57,6 +71,19 @@ export default function TimelineEditor({ clips, onRegenerate }: TimelineEditorPr
                                             🔍
                                         </button>
                                     </div>
+
+                                    {/* Loading Overlay */}
+                                    {clip.loading && (
+                                        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+                                            <div className="relative">
+                                                <div className="w-16 h-16 border-4 border-[var(--primary)]/20 border-t-[var(--primary)] rounded-full animate-spin"></div>
+                                                <div className="absolute inset-0 flex items-center justify-center text-xl animate-pulse">☢️</div>
+                                            </div>
+                                            <p className="mt-4 text-xs font-bold text-[var(--primary)] uppercase tracking-widest animate-pulse">
+                                                {clip.generated_start_image ? 'Alchemizing Video' : 'Syncing Grok Imagine'}
+                                            </p>
+                                        </div>
+                                    )}
 
                                     {clip.video ? (
                                         <video
@@ -65,96 +92,60 @@ export default function TimelineEditor({ clips, onRegenerate }: TimelineEditorPr
                                             controls
                                             autoPlay
                                             loop
-                                            muted
+                                            onPlay={() => playAudioForVideo(i)}
                                         />
+                                    ) : clip.video_failed ? (
+                                        <div className="relative w-full h-full">
+                                            {clip.generated_start_image && (
+                                                <img
+                                                    src={clip.generated_start_image}
+                                                    className="w-full h-full object-cover opacity-40 grayscale"
+                                                    alt="Frozen start frame"
+                                                />
+                                            )}
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-black/60">
+                                                <span className="text-2xl mb-2">🎬⚠️</span>
+                                                <p className="text-[10px] text-red-400 font-mono line-clamp-3 mb-2">{clip.videoError || 'Video Failed'}</p>
+                                                <button
+                                                    onClick={() => onRegenerateVideo(i)}
+                                                    className="text-[10px] bg-red-900/50 hover:bg-red-900/80 text-white px-3 py-1.5 rounded-full border border-red-500/50 transition-all font-bold"
+                                                >
+                                                    Retry Video
+                                                </button>
+                                            </div>
+                                        </div>
                                     ) : clip.generated_start_image ? (
-                                        clip.is_start_svg ? (
-                                            <div
-                                                className="w-full h-full bg-gray-900 cursor-pointer"
-                                                dangerouslySetInnerHTML={{ __html: clip.generated_start_image }}
-                                                onClick={() => setZoomedImage(clip.generated_start_image)} // Fallback if no SVG preview
-                                            />
-                                        ) : (
-                                            <img
-                                                src={clip.generated_start_image}
-                                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-500"
-                                                alt="Start Generated"
-                                                onClick={() => setZoomedImage(clip.generated_start_image)}
-                                            />
-                                        )
+                                        <img
+                                            src={clip.generated_start_image}
+                                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-500"
+                                            alt="Start Generated"
+                                            onClick={() => setZoomedImage(clip.generated_start_image)}
+                                        />
                                     ) : clip.start_failed ? (
-                                        <button
-                                            onClick={() => onRegenerate(i, 'start')}
-                                            className="w-full h-full flex flex-col items-center justify-center text-red-500 hover:bg-red-900/10 transition-colors"
-                                        >
-                                            <span className="text-2xl font-bold">↻</span>
-                                            <span className="text-xs">Retry</span>
-                                        </button>
-                                    ) : clip.imageUrl ? (
-                                        <img src={clip.imageUrl} className="w-full h-full object-cover opacity-80" alt="Start Placeholder" />
+                                        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gray-950">
+                                            <span className="text-2xl mb-2">⚠️</span>
+                                            <p className="text-[10px] text-red-400 font-mono line-clamp-3 mb-2">{clip.error || 'Generation Failed'}</p>
+                                            <button
+                                                onClick={() => onRegenerate(i)}
+                                                className="text-[10px] bg-red-900/30 hover:bg-red-900/50 text-red-200 px-2 py-1 rounded"
+                                            >
+                                                Retry Image
+                                            </button>
+                                        </div>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-2xl animate-pulse">⏳</div>
+                                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-700 p-4 text-center">
+                                            {i === 0 ? (
+                                                <div className="animate-pulse">⏳ Awaiting First Frame...</div>
+                                            ) : (
+                                                <div className="text-xs">
+                                                    <span className="block text-xl mb-1">🔗</span>
+                                                    Waiting for previous clip to finish...
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
                                     <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/90 to-transparent pt-8 pointer-events-none">
                                         <p className="text-[10px] text-gray-300 line-clamp-4 leading-tight">{clip.visual_start}</p>
-                                    </div>
-                                </div>
-
-                                {/* End Frame */}
-                                <div className="flex-1 relative group rounded-lg overflow-hidden border border-[var(--glass-border)] bg-black">
-                                    <div className="absolute top-1 left-1 z-10 bg-black/70 text-[10px] text-white px-2 py-0.5 rounded backdrop-blur-md pointer-events-none">END</div>
-
-                                    {/* Actions Overlay */}
-                                    <div className="absolute top-1 right-1 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); onRegenerate(i, 'end'); }}
-                                            className="bg-black/70 hover:bg-[var(--primary)] text-white p-1.5 rounded backdrop-blur-md transition-colors"
-                                            title="Regenerate Image"
-                                        >
-                                            ↻
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (clip.generated_end_image) setZoomedImage(clip.generated_end_image);
-                                            }}
-                                            className="bg-black/70 hover:bg-white/20 text-white p-1.5 rounded backdrop-blur-md transition-colors"
-                                            title="Zoom"
-                                        >
-                                            🔍
-                                        </button>
-                                    </div>
-
-                                    {clip.generated_end_image ? (
-                                        clip.is_end_svg ? (
-                                            <div
-                                                className="w-full h-full bg-gray-900 cursor-pointer"
-                                                dangerouslySetInnerHTML={{ __html: clip.generated_end_image }}
-                                                onClick={() => setZoomedImage(clip.generated_end_image)}
-                                            />
-                                        ) : (
-                                            <img
-                                                src={clip.generated_end_image}
-                                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-500"
-                                                alt="End Generated"
-                                                onClick={() => setZoomedImage(clip.generated_end_image)}
-                                            />
-                                        )
-                                    ) : clip.end_failed ? (
-                                        <button
-                                            onClick={() => onRegenerate(i, 'end')}
-                                            className="w-full h-full flex flex-col items-center justify-center text-red-500 hover:bg-red-900/10 transition-colors"
-                                        >
-                                            <span className="text-2xl font-bold">↻</span>
-                                            <span className="text-xs">Retry</span>
-                                        </button>
-                                    ) : clip.imageUrl ? (
-                                        <img src={clip.imageUrl} className="w-full h-full object-cover opacity-60 grayscale-[30%]" alt="End Placeholder" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-2xl animate-pulse">⏳</div>
-                                    )}
-                                    <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/90 to-transparent pt-8 pointer-events-none">
-                                        <p className="text-[10px] text-gray-300 line-clamp-4 leading-tight">{clip.visual_end}</p>
                                     </div>
                                 </div>
                             </div>
@@ -168,8 +159,34 @@ export default function TimelineEditor({ clips, onRegenerate }: TimelineEditorPr
                                 <div className="bg-[var(--primary)]/10 p-2 rounded text-sm border border-[var(--primary)]/20">
                                     <span className="text-white font-medium">"{clip.line}"</span>
                                     {clip.audio && (
-                                        <div className="mt-2 pt-2 border-t border-[var(--primary)]/20">
-                                            <audio controls className="w-full h-6 opacity-80 hover:opacity-100 transition-opacity" src={clip.audio} />
+                                        <div className="mt-2 pt-2 border-t border-[var(--primary)]/20 flex flex-col gap-2">
+                                            <audio
+                                                ref={el => { audioRefs.current[i] = el; }}
+                                                controls
+                                                className="w-full h-6 opacity-80 hover:opacity-100 transition-opacity"
+                                                src={clip.audio}
+                                            />
+
+                                            {/* Sequential Generation Button */}
+                                            {!clip.video && (i === 0 || (clips[i - 1] && clips[i - 1].video)) && (
+                                                <button
+                                                    onClick={() => onGenerateNext(i)}
+                                                    disabled={clip.loading}
+                                                    className={`w-full py-2 ${clip.loading ? 'bg-gray-700 cursor-not-allowed' : 'bg-[var(--primary)] hover:bg-[var(--primary)]/80'} text-white rounded text-xs font-bold transition-all flex items-center justify-center gap-2 mt-1`}
+                                                >
+                                                    {clip.loading ? (
+                                                        <>
+                                                            <span className="animate-spin text-lg">☢️</span>
+                                                            ALCHEMIZING...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span>✨</span>
+                                                            GENERATE SCENE
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -179,25 +196,17 @@ export default function TimelineEditor({ clips, onRegenerate }: TimelineEditorPr
                 </div>
             </div>
 
-            {/* Lightbox Modal */}
             {zoomedImage && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-8"
                     onClick={() => setZoomedImage(null)}
                 >
                     <div className="relative max-w-full max-h-full">
-                        {zoomedImage.startsWith('<svg') ? (
-                            <div
-                                className="w-[80vw] h-[80vh] bg-gray-900 rounded-xl"
-                                dangerouslySetInnerHTML={{ __html: zoomedImage }}
-                            />
-                        ) : (
-                            <img
-                                src={zoomedImage}
-                                className="max-w-full max-h-full rounded-lg shadow-2xl border border-[var(--glass-border)]"
-                                alt="Zoomed"
-                            />
-                        )}
+                        <img
+                            src={zoomedImage}
+                            className="max-w-full max-h-full rounded-lg shadow-2xl border border-[var(--glass-border)]"
+                            alt="Zoomed"
+                        />
                         <p className="text-center text-gray-400 mt-4 text-sm">Click anywhere to close</p>
                     </div>
                 </div>

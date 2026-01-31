@@ -76,13 +76,25 @@ export default function CharacterCard({ character: initialChar }: { character: C
             <p className="text-sm text-[var(--secondary)] font-medium mb-2">{character.role}</p>
             <p className="text-xs text-gray-400 line-clamp-3">{character.traits}</p>
 
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                 <Link
                     href={`/characters/${character.id}`}
                     className="text-xs bg-black/50 hover:bg-[var(--primary)] text-white px-3 py-1.5 rounded backdrop-blur-sm"
                 >
                     Edit
                 </Link>
+                <button
+                    onClick={async (e) => {
+                        e.preventDefault();
+                        if (confirm(`Delete ${character.name}?`)) {
+                            const res = await fetch(`/api/characters/${character.id}`, { method: 'DELETE' });
+                            if (res.ok) router.refresh();
+                        }
+                    }}
+                    className="text-xs bg-black/50 hover:bg-red-600 text-white px-3 py-1.5 rounded backdrop-blur-sm"
+                >
+                    🗑️
+                </button>
             </div>
         </div>
     );

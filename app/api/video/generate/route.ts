@@ -4,43 +4,28 @@ import { generateVideo } from '@/app/lib/veo';
 
 export async function POST(request: Request) {
     try {
-        const { prompt, startImage, endImage } = await request.json();
+        const { prompt, startImage } = await request.json();
 
         if (!prompt) {
             return NextResponse.json({ error: 'Prompt required' }, { status: 400 });
         }
 
-        console.log(`[Video API] Requesting video for: "${prompt.substring(0, 30)}..."`);
-
-        // 1. Try Veo 3 Fast - Now Primary for Speed
-        try {
-            console.log("[Video API] Attempting Veo 3 Fast...");
-            const result = await generateVideo(prompt, startImage, endImage);
-            if (result.videoUrl) {
-                console.log("[Video API] Veo 3 Fast Success!");
-                return NextResponse.json({ video: result.videoUrl, id: result.id });
-            }
-        } catch (veoError) {
-            console.error("[Video API] Veo Exception:", veoError);
+        if (!startImage) {
+            console.error("[Video API] Missing startImage for Image-to-Video generation.");
+            return NextResponse.json({ error: 'Image-to-Video requires a startImage. Please ensure the image generation step succeeded.' }, { status: 400 });
         }
 
-        // 2. Fallback to Kie.ai (Kling 2.6)
-        console.log("[Video API] Falling back to Kie.ai (Kling 2.6)...");
-        try {
-            const kieResult = await generateKieVideo(prompt, startImage);
-            if (kieResult.success && kieResult.videoUrl) {
-                console.log("[Video API] Kie.ai Success!");
-                return NextResponse.json({
-                    video: kieResult.videoUrl,
-                    id: kieResult.taskId || 'kie-task'
-                });
-            }
-            console.warn("[Video API] Kie.ai failed or no video:", kieResult.error);
-        } catch (kieError) {
-            console.error("[Video API] Kie.ai Exception:", kieError);
-        }
+        console.log(`[Video API] Requesting video from Kie.ai. Prompt: "${prompt.substring(0, 30)}...", Image Size: ${Math.round(startImage.length / 1024)} KB`);
 
-        throw new Error("All video generation models failed.");
+        const result = await generateKieVideo(prompt, startImage);
+
+        if (result.success && result.videoUrl) {
+            console.log("[Video API] Kie.ai Success!");
+            return NextResponse.json({ video: result.videoUrl, id: result.taskId });
+        } else {
+            console.error("[Video API] Kie.ai Failed:", result.error);
+            return NextResponse.json({ error: result.error || "Video generation failed" }, { status: 500 });
+        }
 
     } catch (error: any) {
         console.error("[Video API] Final Error:", error);

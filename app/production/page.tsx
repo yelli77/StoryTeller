@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TimelineEditor from '../components/TimelineEditor';
 
 // Mock script data if none found
@@ -14,6 +14,12 @@ export default function ProductionPage() {
     const [loading, setLoading] = useState(false);
     const [clips, setClips] = useState<any[]>([]);
     const [characters, setCharacters] = useState<any[]>([]);
+
+    // Ref to track clips for async access (avoids stale closures and async setState issues)
+    const clipsRef = useRef<any[]>([]);
+    useEffect(() => {
+        clipsRef.current = clips;
+    }, [clips]);
 
     // Load script from session storage on mount
     useEffect(() => {
@@ -45,279 +51,263 @@ export default function ProductionPage() {
         }
     };
 
-    // Simulate the production pipeline
+    // Helper to extract the last frame of a video
+    const extractLastFrame = async (videoUrl: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.src = videoUrl;
+            video.crossOrigin = 'anonymous';
+            video.muted = true;
+
+            video.onloadedmetadata = () => {
+                video.currentTime = Math.max(0, video.duration - 0.1);
+            };
+
+            video.onseeked = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(video, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                } else {
+                    reject("Canvas context failed");
+                }
+            };
+            video.onerror = (e) => reject("Video loading failed: " + e);
+        });
+    };
+
+    // Helper to determine reference from visual description
+    const getReferenceForPrompt = async (prompt: string, speaker: string) => {
+        const mentionedChars = characters.filter(c => prompt.toLowerCase().includes(c.name.toLowerCase()));
+        let foundChar = mentionedChars.find(c => !c.isCamera);
+        if (!foundChar) {
+            const speakerChar = characters.find(c => c.name === speaker);
+            if (speakerChar && !speakerChar.isCamera) foundChar = speakerChar;
+        }
+        if (foundChar && foundChar.image) return await urlToBase64(foundChar.image);
+        return undefined;
+    };
+
+    // Helper to inject character traits into the prompt
+    const enhancePrompt = (originalPrompt: string) => {
+        let enhancedPrompt = originalPrompt;
+        const relevantChars = characters.filter(c => originalPrompt.toLowerCase().includes(c.name.toLowerCase()));
+        if (relevantChars.length > 0) {
+            const traitsDescription = relevantChars.map(c => `${c.name}: ${c.traits}`).join(". ");
+            enhancedPrompt = `${originalPrompt}. (Character details: ${traitsDescription})`;
+        }
+        return enhancedPrompt;
+    };
+
+    // Sequential Generator for a specific clip
+    const generateNextClip = async (index: number) => {
+        console.log(`[Client] Starting generation for clip ${index}`);
+
+        // Set loading state immediately
+        setClips(prev => {
+            const next = [...prev];
+            if (next[index]) next[index] = { ...next[index], loading: true };
+            return next;
+        });
+
+        try {
+            // Use ref for stable access to current state
+            const clip = clipsRef.current[index];
+            if (!clip) {
+                console.warn(`[Client] Clip ${index} not found in state, skipping.`);
+                return;
+            }
+
+            let startImage = clip.generated_start_image;
+
+            // If not the first clip, extract from previous video
+            if (index > 0 && clipsRef.current[index - 1]?.video) {
+                console.log(`[Client] Chaining Clip ${index} to Clip ${index - 1}`);
+                try {
+                    startImage = await extractLastFrame(clipsRef.current[index - 1].video);
+                    setClips(prev => {
+                        const next = [...prev];
+                        next[index] = { ...next[index], generated_start_image: startImage };
+                        return next;
+                    });
+                } catch (err) {
+                    console.error("Frame extraction failed", err);
+                }
+            }
+
+            // Generate Image if missing
+            if (!startImage) {
+                const ref = await getReferenceForPrompt(clip.visual_start, clip.speaker);
+                const res = await fetch('/api/image/generate', {
+                    method: 'POST',
+                    body: JSON.stringify({ prompt: enhancePrompt(clip.visual_start), referenceImage: ref })
+                });
+                const data = await res.json();
+                if (data.image) {
+                    startImage = data.image;
+                    // INTERMEDIATE UPDATE: Show the frame immediately!
+                    setClips(prev => {
+                        const next = [...prev];
+                        next[index] = { ...next[index], generated_start_image: startImage, start_failed: false };
+                        return next;
+                    });
+                } else {
+                    setClips(prev => {
+                        const next = [...prev];
+                        next[index] = { ...next[index], start_failed: true, error: data.error };
+                        return next;
+                    });
+                }
+            }
+
+            // Generate Video
+            if (!startImage) {
+                console.warn(`[Sequential Gen] Skipping video for clip ${index} - No start image available.`);
+                setClips(prev => {
+                    const next = [...prev];
+                    next[index] = { ...next[index], video_failed: true, videoError: "Image generation skipped.", loading: false };
+                    return next;
+                });
+                return;
+            }
+
+            console.log(`[Client] Requesting video generation for clip ${index} with image size: ${Math.round(startImage.length / 1024)} KB`);
+
+            const res = await fetch('/api/video/generate', {
+                method: 'POST',
+                body: JSON.stringify({
+                    prompt: `Cinematic shot of ${clip.visual_start}`,
+                    startImage: startImage
+                })
+            });
+            const data = await res.json();
+            setClips(prev => {
+                const next = [...prev];
+                if (data.video) {
+                    next[index] = { ...next[index], video: data.video, video_generated: true, video_failed: false };
+                } else {
+                    next[index] = { ...next[index], video_failed: true, videoError: data.error || "Video Generation Failed" };
+                }
+                return next;
+            });
+        } catch (e) {
+            console.error(`[Sequential Gen] Error for clip ${index}`, e);
+            setClips(prev => {
+                const next = [...prev];
+                next[index] = { ...next[index], video_failed: true, videoError: (e as Error).message };
+                return next;
+            });
+        } finally {
+            setClips(prev => {
+                const next = [...prev];
+                next[index] = { ...next[index], loading: false };
+                return next;
+            });
+        }
+    };
+
     const startProduction = async () => {
         setLoading(true);
-        const updatedClips = [...clips];
 
-        // Step A: Audio Synthesis
-        console.log("[Client] Starting Audio Generation...");
-        const audioClips = [...updatedClips]; // Use the clips list we are working on
+        // Step 0: Start First Visual Scene INSTANTLY
+        generateNextClip(0);
 
-        // Process Audio Sequentially to avoid Rate Limits (429 / Concurrency)
-        for (const [i, clip] of audioClips.entries()) {
-            // Find character to get VoiceID
+        // Step A: Audio Synthesis (Sequential but non-blocking for visuals)
+        for (let i = 0; i < clips.length; i++) {
+            const clip = clips[i];
             const speakerChar = characters.find(c => c.name === clip.speaker);
-
-            if (speakerChar && speakerChar.voiceId && clip.line && clip.line.trim().length > 0) {
+            if (speakerChar && speakerChar.voiceId && clip.line?.trim()) {
                 try {
-                    // Slight delay to be nice to the API
-                    if (i > 0) await new Promise(r => setTimeout(r, 250));
+                    // Small delay to avoid API hammering
+                    if (i > 0) await new Promise(r => setTimeout(r, 200));
 
                     const res = await fetch('/api/audio/generate', {
                         method: 'POST',
-                        body: JSON.stringify({
-                            text: clip.line,
-                            voiceId: speakerChar.voiceId
-                        })
+                        body: JSON.stringify({ text: clip.line, voiceId: speakerChar.voiceId })
                     });
-
                     const data = await res.json();
                     if (data.audio) {
-                        audioClips[i].audio = data.audio;
-                        audioClips[i].audio_generated = true;
-                    } else {
-                        console.error(`[Audio] Failed for clip ${i}:`, data.error);
+                        setClips(prev => {
+                            const next = [...prev];
+                            next[i] = { ...next[i], audio: data.audio, audio_generated: true };
+                            return next;
+                        });
                     }
                 } catch (e) {
                     console.error(`[Audio] Error clip ${i}`, e);
                 }
-            } else {
-                console.log(`[Audio] No voice ID for ${clip.speaker}, skipping.`);
             }
         }
 
-        setClips([...audioClips]);
-        setSteps(s => ({ ...s, tts: true }));
-
-        console.log("[Client] Starting parallel image generation...");
-        // Use audioClips as base since it has the audio data
-        const imageClips = [...audioClips];
-
-        await Promise.all(imageClips.map(async (clip, i) => {
-
-            // Helper to determine reference from visual description
-            const getReferenceForPrompt = async (prompt: string, speaker: string) => {
-                // Find all characters mentioned in the prompt (Case Insensitive)
-                const mentionedChars = characters.filter(c => prompt.toLowerCase().includes(c.name.toLowerCase()));
-
-                // Prioritize acting characters (NOT camera operators)
-                let foundChar = mentionedChars.find(c => !c.isCamera);
-
-                // If visual doesn't name a visible actor, check if speaker is visible
-                if (!foundChar) {
-                    const speakerChar = characters.find(c => c.name === speaker);
-                    // Only use speaker as reference if they are NOT a camera/POV character
-                    if (speakerChar && !speakerChar.isCamera) {
-                        foundChar = speakerChar;
-                    }
-                }
-
-                if (foundChar && foundChar.image) {
-                    console.log(`[Client] Matches ${foundChar.name} for prompt: "${prompt.substring(0, 20)}..."`);
-                    return await urlToBase64(foundChar.image);
-                }
-                return undefined;
-            };
-
-            // Helper to inject character traits into the prompt
-            const enhancePrompt = (originalPrompt: string) => {
-                let enhancedPrompt = originalPrompt;
-                const relevantChars = characters.filter(c => originalPrompt.toLowerCase().includes(c.name.toLowerCase()));
-
-                if (relevantChars.length > 0) {
-                    const traitsDescription = relevantChars.map(c => `${c.name}: ${c.traits}`).join(". ");
-                    enhancedPrompt = `${originalPrompt}. (Character details: ${traitsDescription})`;
-                }
-
-                console.log(`[Client] Enhanced Prompt: "${enhancedPrompt}"`);
-                return enhancedPrompt;
-            };
-
-            // Generate Start Frame
-            if (clip.visual_start) {
-                const referenceImageBase64 = await getReferenceForPrompt(clip.visual_start, clip.speaker);
-                try {
-                    const res = await fetch('/api/image/generate', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            prompt: enhancePrompt(clip.visual_start),
-                            referenceImage: referenceImageBase64
-                        })
-                    });
-                    const data = await res.json();
-                    if (data.image) {
-                        imageClips[i].generated_start_image = data.image; // Can be SVG string or Data URL
-                        imageClips[i].is_start_svg = data.isSvg;
-                    } else {
-                        console.error(`[Client] START Image Gen Error:`, data.error);
-                        imageClips[i].start_failed = true;
-                    }
-                } catch (e) {
-                    imageClips[i].start_failed = true;
-                    console.error(`[Client] START for clip ${i} ERROR`, e);
-                }
-            }
-
-            // Generate End Frame
-            if (clip.visual_end) {
-                const referenceImageBase64 = await getReferenceForPrompt(clip.visual_end, clip.speaker);
-                try {
-                    const res = await fetch('/api/image/generate', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            prompt: enhancePrompt(clip.visual_end),
-                            referenceImage: referenceImageBase64
-                        })
-                    });
-                    const data = await res.json();
-                    if (data.image) {
-                        imageClips[i].generated_end_image = data.image;
-                        imageClips[i].is_end_svg = data.isSvg;
-                    } else {
-                        console.error(`[Client] END Image Gen Error:`, data.error);
-                        imageClips[i].end_failed = true;
-                    }
-                } catch (e) {
-                    imageClips[i].end_failed = true;
-                    console.error(`[Client] END for clip ${i} ERROR`, e);
-                }
-            }
-        }));
-
-        console.log("[Client] All parallel requests finished.");
-        setClips([...imageClips]);
-
-        // Step B: Image-to-Animation (Video)
-        // NOW that we have images, we can generate video
-        console.log("[Client] Starting Video Generation (Google Veo 3 Fast)...");
-        setSteps(s => ({ ...s, video: true })); // Mark as in-progress
-
-        // Process Video Sequentially
-        const videoClips = [...imageClips];
-
-        for (const [i, clip] of videoClips.entries()) {
-            // Only generate if we have images
-            if (clip.generated_start_image) {
-                try {
-                    // In a real app, we'd wait longer or poll. Mock is fast.
-                    if (i > 0) await new Promise(r => setTimeout(r, 500));
-
-                    const res = await fetch('/api/video/generate', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            prompt: `Cinematic shot of ${clip.visual_start}`,
-                            startImage: clip.generated_start_image,
-                            endImage: clip.generated_end_image
-                        })
-                    });
-
-                    const data = await res.json();
-
-                    if (data.video) {
-                        videoClips[i].video = data.video;
-                        videoClips[i].video_generated = true;
-                    } else {
-                        console.error(`[Client] No video in response for clip ${i}:`, data);
-                    }
-                } catch (e) {
-                    console.error(`[Video] Error clip ${i}`, e);
-                }
-            }
-        }
-
-        setClips([...videoClips]);
-
-        // Step C: Auto-Editor
-        await new Promise(r => setTimeout(r, 1000));
-        setSteps(s => ({ ...s, edit: true }));
-
+        setSteps(s => ({ ...s, tts: true, video: true, edit: true }));
         setLoading(false);
     };
 
     // Regenerate a specific frame
-    const regenerateImage = async (index: number, type: 'start' | 'end') => {
-        const updatedClips = [...clips];
-        const clip = updatedClips[index];
+    const regenerateImage = async (index: number) => {
+        setClips(prev => {
+            const next = [...prev];
+            if (next[index]) next[index] = { ...next[index], generated_start_image: null, start_failed: false, loading: true };
+            return next;
+        });
 
-        // 1. Set to loading state (null)
-        if (type === 'start') {
-            updatedClips[index].generated_start_image = null;
-            updatedClips[index].start_failed = false;
-        } else {
-            updatedClips[index].generated_end_image = null;
-            updatedClips[index].end_failed = false;
-        }
-        setClips([...updatedClips]);
-
-        // 2. Prepare Reference - SMART LOOKUP
-        let referenceImageBase64 = undefined;
-        const prompt = type === 'start' ? clip.visual_start : clip.visual_end;
-
-        // Find char in prompt - Prioritize NON-CAMERA characters
-        const mentionedChars = characters.filter(c => prompt.toLowerCase().includes(c.name.toLowerCase()));
-        let foundChar = mentionedChars.find(c => !c.isCamera);
-
-        if (!foundChar) {
-            const speakerChar = characters.find(c => c.name === clip.speaker);
-            if (speakerChar && !speakerChar.isCamera) {
-                foundChar = speakerChar;
-            }
-        }
-
-        if (foundChar && foundChar.image) {
-            referenceImageBase64 = await urlToBase64(foundChar.image);
-        }
-
-        // 3. Generate
         try {
-            // Helper to inject character traits into the prompt
-            const enhancePrompt = (originalPrompt: string) => {
-                let enhancedPrompt = originalPrompt;
-                const relevantChars = characters.filter(c => originalPrompt.toLowerCase().includes(c.name.toLowerCase()));
-
-                if (relevantChars.length > 0) {
-                    const traitsDescription = relevantChars.map(c => `${c.name}: ${c.traits}`).join(". ");
-                    enhancedPrompt = `${originalPrompt}. (Character details: ${traitsDescription})`;
-                }
-
-                console.log(`[Client] Enhanced Prompt: "${enhancedPrompt}"`);
-                return enhancedPrompt;
-            };
-
+            const clip = clips[index];
+            const ref = await getReferenceForPrompt(clip.visual_start, clip.speaker);
             const res = await fetch('/api/image/generate', {
                 method: 'POST',
                 body: JSON.stringify({
-                    prompt: enhancePrompt(prompt),
-                    referenceImage: referenceImageBase64
+                    prompt: enhancePrompt(clip.visual_start),
+                    referenceImage: ref
                 })
             });
             const data = await res.json();
 
-            // 4. Update State
-            const finalClips = [...clips]; // re-read state in case of race? (Hooks handle this usually, but safe copy)
-            if (data.image) {
-                if (type === 'start') {
-                    finalClips[index].generated_start_image = data.image;
-                    finalClips[index].is_start_svg = data.isSvg;
+            setClips(prev => {
+                const next = [...prev];
+                if (data.image) {
+                    next[index] = { ...next[index], generated_start_image: data.image, start_failed: false };
                 } else {
-                    finalClips[index].generated_end_image = data.image;
-                    finalClips[index].is_end_svg = data.isSvg;
+                    console.error(`[Client] Regenerate Image Error:`, data.error);
+                    next[index] = { ...next[index], start_failed: true, error: data.error };
                 }
-            } else {
-                console.error(`[Client] Regenerate Image Error:`, data.error);
-                if (type === 'start') finalClips[index].start_failed = true;
-                else finalClips[index].end_failed = true;
-            }
-            setClips([...finalClips]);
-
+                return next;
+            });
         } catch (e) {
             console.error("Regeneration failed", e);
-            const finalClips = [...clips];
-            if (type === 'start') finalClips[index].start_failed = true;
-            else finalClips[index].end_failed = true;
-            setClips([...finalClips]);
+            setClips(prev => {
+                const next = [...prev];
+                next[index] = { ...next[index], start_failed: true };
+                return next;
+            });
+        } finally {
+            setClips(prev => {
+                const next = [...prev];
+                next[index] = { ...next[index], loading: false };
+                return next;
+            });
         }
+    };
+
+    // Regenerate a specific video
+    const regenerateVideo = async (index: number) => {
+        setClips(prev => {
+            const next = [...prev];
+            if (next[index]) {
+                next[index] = {
+                    ...next[index],
+                    video: null,
+                    video_generated: false,
+                    video_failed: false
+                };
+            }
+            return next;
+        });
+
+        await generateNextClip(index);
     };
 
     return (
@@ -342,14 +332,19 @@ export default function ProductionPage() {
             {/* Pipeline Status */}
             <div className="grid grid-cols-3 gap-4">
                 <StepCard title="Step A: Audio Synthesis" status={steps.tts} icon="🎙️" tool="ElevenLabs (Live)" />
-                <StepCard title="Step B: Act-One Bridge" status={steps.video} icon="🎭" tool="Google Veo 3 (Fast)" />
+                <StepCard title="Step B: Act-One Bridge" status={steps.video} icon="🎭" tool="Kie.ai (Grok Imagine)" />
                 <StepCard title="Step C: Auto-Editor" status={steps.edit} icon="✂️" tool="StoryTeller Engine" />
             </div>
 
             {/* Main Workspace */}
             <div className="glass-panel p-6 flex-1 flex flex-col gap-4">
                 <h3 className="text-xl font-bold border-b border-[var(--glass-border)] pb-4">Master Timeline (9:16)</h3>
-                <TimelineEditor clips={clips} onRegenerate={regenerateImage} />
+                <TimelineEditor
+                    clips={clips}
+                    onRegenerate={regenerateImage}
+                    onRegenerateVideo={regenerateVideo}
+                    onGenerateNext={generateNextClip}
+                />
 
                 {steps.edit && (
                     <div className="flex justify-end gap-4 mt-auto pt-4 border-t border-[var(--glass-border)]">

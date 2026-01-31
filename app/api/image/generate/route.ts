@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateImage, generateSVG } from '@/app/lib/gemini';
+import { generateImage } from '@/app/lib/gemini';
 
 export async function POST(request: Request) {
     try {
@@ -19,12 +19,10 @@ export async function POST(request: Request) {
 
         if (imgError) {
             console.error("[API] Image Gen internal error:", imgError);
-            // We still return 200 so the frontend can handle the fallback logic with the error message
-            return NextResponse.json({ image, error: imgError, isSvg: false });
+            return NextResponse.json({ image: null, error: imgError });
         }
 
-        const isSvg = image?.startsWith('<svg');
-        return NextResponse.json({ image, isSvg });
+        return NextResponse.json({ image, error: null });
     } catch (error) {
         return NextResponse.json({ error: 'Failed to generate image' }, { status: 500 });
     }

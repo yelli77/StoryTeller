@@ -20,14 +20,40 @@ export default function LocationDeck() {
                     </h1>
                     <p className="text-gray-400">Manage your recurring sets and backgrounds.</p>
                 </div>
-                <Link href="/locations/new" className="btn-primary flex items-center gap-2 px-6 py-3">
-                    <span className="text-2xl">+</span> Add New Location
-                </Link>
+                <div className="flex gap-2">
+                    <button
+                        onClick={async () => {
+                            if (confirm("Delete ALL locations? This cannot be undone.")) {
+                                const res = await fetch('/api/locations', { method: 'DELETE' });
+                                if (res.ok) window.location.reload();
+                            }
+                        }}
+                        className="btn-secondary flex items-center gap-2 border-red-900/50 hover:bg-red-900/20 text-red-500"
+                    >
+                        🗑️ Delete All
+                    </button>
+                    <Link href="/locations/new" className="btn-primary flex items-center gap-2 px-6 py-3">
+                        <span className="text-2xl">+</span> Add New Location
+                    </Link>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {locations.map((loc) => (
-                    <div key={loc.id} className="glass-panel p-4 group hover:border-[var(--primary)] transition-colors">
+                    <div key={loc.id} className="glass-panel p-4 group hover:border-[var(--primary)] transition-colors relative">
+                        <button
+                            onClick={async (e) => {
+                                e.preventDefault();
+                                if (confirm(`Delete ${loc.name}?`)) {
+                                    const res = await fetch(`/api/locations/${loc.id}`, { method: 'DELETE' });
+                                    if (res.ok) window.location.reload();
+                                }
+                            }}
+                            className="absolute top-2 right-2 z-20 bg-black/50 hover:bg-red-600 text-white p-2 rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Delete Location"
+                        >
+                            🗑️
+                        </button>
                         <div className="aspect-video bg-black rounded-lg overflow-hidden mb-4 relative">
                             {loc.image ? (
                                 loc.image.startsWith('<svg') ? (

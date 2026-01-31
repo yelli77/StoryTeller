@@ -62,18 +62,26 @@ export async function startKieVideoGeneration(prompt: string, startImageUrl?: st
         publicImageUrl = startImageUrl;
     }
 
-    const tryGenerate = async (finalImageUrl: string | null) => {
+    if (!publicImageUrl) {
+        console.error("[Kie] Image-to-Video requires a valid public image URL.");
+        return { success: false, error: "Missing or invalid start image for video generation." };
+    }
+
+    try {
         const payload = {
-            model: finalImageUrl ? "kling-2.6/image-to-video" : "kling-2.6/text-to-video",
+            model: "kling/v2-5-turbo-image-to-video-pro",
+            callBackUrl: "https://example.com/webhook",
             input: {
                 prompt,
-                aspect_ratio: "16:9",
+                image_url: publicImageUrl,
                 duration: "5",
-                sound: false,
-                ...(finalImageUrl ? { image_urls: [finalImageUrl] } : {})
-            },
-            callBackUrl: "https://example.com/webhook"
+                cfg_scale: 0.5,
+                sound: true
+            }
         };
+
+        console.log(`[Kie] Starting Image-to-Video with KLING 2.5 PRO: "${prompt.substring(0, 30)}..."`);
+        console.log("[Kie] Payload DEBUG:", JSON.stringify(payload, null, 2));
 
         const response = await fetch(`${BASE_URL}/api/v1/jobs/createTask`, {
             method: 'POST',
@@ -84,26 +92,14 @@ export async function startKieVideoGeneration(prompt: string, startImageUrl?: st
             body: JSON.stringify(payload)
         });
 
-        return await response.json();
-    };
-
-    try {
-        console.log(`[Kie] Starting generation: "${prompt.substring(0, 30)}..." (Image: ${!!publicImageUrl})`);
-
-        let data = await tryGenerate(publicImageUrl);
-
-        // Robust Fallback: If image-to-video fails (e.g. invalid image, upload failed, etc.), fallback to text-to-video
-        if (publicImageUrl && (data.code !== 200 || data.msg?.toLowerCase().includes('image') || data.msg?.toLowerCase().includes('file'))) {
-            console.warn("[Kie] Image-based generation failed, falling back to Text-to-Video...", data.msg);
-            data = await tryGenerate(null);
-        }
+        const data = await response.json();
 
         if (data.code === 200 && data.data && data.data.taskId) {
             console.log(`[Kie] Task Created: ${data.data.taskId}`);
             return { success: true, taskId: data.data.taskId };
         } else {
             console.error("[Kie] Creation Error:", data.msg);
-            return { success: false, error: data.msg || "Failed to start generation" };
+            return { success: false, error: data.msg || "Failed to start image-to-video generation" };
         }
     } catch (error) {
         console.error("[Kie] Exception during start:", error);
@@ -137,11 +133,12 @@ export async function pollKieVideoStatus(taskId: string): Promise<KieVideoGenera
                     console.log(`[Kie] Task ${taskId} finished successfully!`);
                     return { success: true, videoUrl: result.resultUrls[0] };
                 }
-            } else if (taskData.state === 'failed') {
-                console.error(`[Kie] Task ${taskId} failed:`, taskData.failMsg);
-                return { success: false, error: taskData.failMsg || "Task failed" };
+            } else if (taskData.state === 'failed' || taskData.state === 'failure' || taskData.state === 'fail') {
+                console.error(`[Kie] Task ${taskId} failed:`, taskData.failMsg || data.msg);
+                return { success: false, error: taskData.failMsg || data.msg || "Task failed" };
             }
             // Keep polling
+            console.log(`[Kie] Task ${taskId} state: ${taskData.state}...`);
             return { success: true, taskId, state: taskData.state };
         } else {
             return { success: false, error: data.msg || "Failed to poll status" };

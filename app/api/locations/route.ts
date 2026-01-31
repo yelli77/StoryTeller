@@ -50,3 +50,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Failed to save location" }, { status: 500 });
     }
 }
+
+export async function DELETE() {
+    const filePath = path.join(process.cwd(), 'data', 'locations.json');
+    fs.writeFileSync(filePath, JSON.stringify([], null, 2));
+    return NextResponse.json({ success: true });
+}

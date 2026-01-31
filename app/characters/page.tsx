@@ -34,9 +34,22 @@ export default function CharactersPage() {
                     </h1>
                     <p className="text-gray-400 text-sm">Manage your cast</p>
                 </div>
-                <Link href="/characters/new" className="btn-primary flex items-center gap-2">
-                    <span>+ Add Character</span>
-                </Link>
+                <div className="flex gap-2">
+                    <button
+                        onClick={async () => {
+                            if (confirm("Delete ALL characters? This cannot be undone.")) {
+                                const res = await fetch('/api/characters', { method: 'DELETE' });
+                                if (res.ok) window.location.reload();
+                            }
+                        }}
+                        className="btn-secondary flex items-center gap-2 border-red-900/50 hover:bg-red-900/20 text-red-500"
+                    >
+                        🗑️ Delete All
+                    </button>
+                    <Link href="/characters/new" className="btn-primary flex items-center gap-2">
+                        <span>+ Add Character</span>
+                    </Link>
+                </div>
             </div>
 
             {loading ? (

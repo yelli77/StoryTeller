@@ -56,3 +56,8 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: "Failed to update character" }, { status: 500 });
     }
 }
+
+export async function DELETE() {
+    saveCharacters([]);
+    return NextResponse.json({ success: true });
+}

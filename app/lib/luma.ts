@@ -2,7 +2,7 @@
 const MOCK_VIDEO_URL = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
 const LUMA_API_KEY = process.env.LUMA_API_KEY;
 
-export async function generateVideo(prompt: string, startImage: string, endImage: string) {
+export async function generateVideo(prompt: string, startImage: string, endImage?: string) {
     console.log("[Luma Mock] Generating video for:", prompt.substring(0, 30));
 
     // Simulate processing time
