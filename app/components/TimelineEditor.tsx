@@ -53,7 +53,7 @@ export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo,
                                     </div>
 
                                     {/* Actions Overlay */}
-                                    <div className="absolute top-1 right-1 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="absolute top-1 right-1 z-40 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         {!clip.video && (
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); onRegenerate(i); }}
@@ -66,7 +66,7 @@ export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo,
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (clip.video) setZoomedImage(clip.video); // Zoom video if exists? Or just image
+                                                if (clip.video) setZoomedImage(clip.video);
                                                 else if (clip.generated_start_image) setZoomedImage(clip.generated_start_image);
                                             }}
                                             className="bg-black/70 hover:bg-white/20 text-white p-1.5 rounded backdrop-blur-md transition-colors"
@@ -78,12 +78,15 @@ export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo,
 
                                     {/* Loading Overlay */}
                                     {clip.loading && (
-                                        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+                                        <div
+                                            className={`absolute inset-0 z-30 flex flex-col items-center justify-center ${clip.generated_start_image ? 'bg-black/20 cursor-zoom-in' : 'bg-black/70 backdrop-blur-sm'} transition-all duration-700`}
+                                            onClick={() => clip.generated_start_image && setZoomedImage(clip.generated_start_image)}
+                                        >
                                             <div className="relative">
                                                 <div className="w-16 h-16 border-4 border-[var(--primary)]/20 border-t-[var(--primary)] rounded-full animate-spin"></div>
                                                 <div className="absolute inset-0 flex items-center justify-center text-xl animate-pulse">☢️</div>
                                             </div>
-                                            <p className="mt-4 text-xs font-bold text-[var(--primary)] uppercase tracking-widest animate-pulse">
+                                            <p className={`mt-4 text-xs font-bold text-[var(--primary)] uppercase tracking-widest animate-pulse ${clip.generated_start_image ? 'bg-black/60 px-3 py-1 rounded-full backdrop-blur-md' : ''}`}>
                                                 {clip.generated_start_image ? 'Alchemizing Video' : 'Syncing Grok Imagine'}
                                             </p>
                                         </div>
