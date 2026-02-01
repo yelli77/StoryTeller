@@ -1,0 +1,11 @@
+CLIP1:
+clip_l.safetensors
+hunyuan_video_clip_L.safetensors
+hunyuan_video_llm_1b.safetensors
+t5xxl_fp16.safetensors
+
+CLIP2:
+clip_l.safetensors
+hunyuan_video_clip_L.safetensors
+hunyuan_video_llm_1b.safetensors
+t5xxl_fp16.safetensors

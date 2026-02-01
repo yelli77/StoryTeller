@@ -8,6 +8,7 @@ export default function StoryPage() {
     const [duration, setDuration] = useState(16);
     const [locations, setLocations] = useState<any[]>([]);
     const [selectedLocation, setSelectedLocation] = useState<string>('');
+    const [platform, setPlatform] = useState('YouTube');
     const [loading, setLoading] = useState(false);
     const [script, setScript] = useState([]);
     const router = useRouter();
@@ -39,7 +40,8 @@ export default function StoryPage() {
                 body: JSON.stringify({
                     topic,
                     duration,
-                    location: locationObj
+                    location: locationObj,
+                    platform
                 })
             });
             const data = await res.json();
@@ -82,6 +84,16 @@ export default function StoryPage() {
                                 </option>
                             ))}
                         </select>
+
+                        <select
+                            className={`flex-1 bg-[var(--surface)] border border-[var(--glass-border)] rounded-xl p-4 text-white text-lg focus:outline-none transition-colors ${platform === 'YouPorn' ? 'border-[var(--danger)] text-[var(--danger)] animate-pulse' : 'focus:border-[var(--primary)]'}`}
+                            value={platform}
+                            onChange={e => setPlatform(e.target.value)}
+                        >
+                            <option value="YouTube">📺 YouTube (SFW)</option>
+                            <option value="YouPorn">🔞 YouPorn (NSFW)</option>
+                        </select>
+
                         <input
                             type="number"
                             className="w-32 bg-[var(--surface)] border border-[var(--glass-border)] rounded-xl p-4 text-white text-lg focus:border-[var(--primary)] focus:outline-none transition-colors text-center"
@@ -97,7 +109,7 @@ export default function StoryPage() {
                         <input
                             type="text"
                             className="flex-[3] bg-[var(--surface)] border border-[var(--glass-border)] rounded-xl p-4 text-white text-lg focus:border-[var(--primary)] focus:outline-none transition-colors"
-                            placeholder="Enter a topic (e.g. 'Ben forgets the anniversary again')"
+                            placeholder={platform === 'YouPorn' ? "Enter a spicy topic..." : "Enter a viral topic..."}
                             value={topic}
                             onChange={e => setTopic(e.target.value)}
                         />
@@ -105,15 +117,15 @@ export default function StoryPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className={`btn-primary text-lg px-8 flex items-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`btn-primary text-lg px-8 flex items-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''} ${platform === 'YouPorn' ? 'bg-[var(--danger)] hover:shadow-[0_0_20px_rgba(255,50,50,0.5)]' : ''}`}
                         >
                             {loading ? (
                                 <>
-                                    <span className="animate-spin">⚡</span> Generating...
+                                    <span className="animate-spin">{platform === 'YouPorn' ? '🔞' : '⚡'}</span> Generating...
                                 </>
                             ) : (
                                 <>
-                                    <span>✨</span> Spin Scenario
+                                    <span>{platform === 'YouPorn' ? '🔥' : '✨'}</span> {platform === 'YouPorn' ? 'Ignite NSFW' : 'Spin Scenario'}
                                 </>
                             )}
                         </button>

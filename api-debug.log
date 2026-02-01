@@ -1,0 +1,83 @@
+[2026-01-31T17:08:58.703Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T17:08:58.706Z] Payload: prompt=Talking video of Ben. Only Ben... type=lipsync
+[2026-01-31T17:10:28.545Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T17:10:28.548Z] Payload Received: prompt=Talking video of Ben. Only Ben... type=lipsync hasImage=true hasAudio=true
+[2026-01-31T17:10:28.548Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-01-31T17:10:28.548Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Ben. Only Ben..."
+[2026-01-31T17:10:28.548Z] [Video API] Frames: 120
+[2026-01-31T17:23:03.873Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T17:23:03.888Z] Payload Received: prompt=Talking video of Emily. Only E... type=lipsync hasImage=true hasAudio=true
+[2026-01-31T17:23:03.888Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-01-31T17:23:03.889Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Emily. Only E..."
+[2026-01-31T17:23:03.889Z] [Video API] Frames: 120
+[2026-01-31T17:27:28.805Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T17:27:28.826Z] Payload Received: prompt=Talking video of Emily. Only E... type=lipsync hasImage=true hasAudio=true
+[2026-01-31T17:27:28.826Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-01-31T17:27:28.827Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Emily. Only E..."
+[2026-01-31T17:27:28.827Z] [Video API] Frames: 120
+[2026-01-31T17:42:52.194Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T17:42:52.197Z] Payload Received: prompt=Talking video of Emily. Only E... type=lipsync hasImage=true hasAudio=true
+[2026-01-31T17:42:52.197Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-01-31T17:42:52.197Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Emily. Only E..."
+[2026-01-31T17:42:52.197Z] [Video API] Frames: 120
+[2026-01-31T17:42:52.771Z] [Video API] RunPod Failed: ComfyUI Error: 400
+[2026-01-31T17:45:03.202Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T17:45:03.217Z] Payload Received: prompt=Talking video of Emily. Only E... type=lipsync hasImage=true hasAudio=true
+[2026-01-31T17:45:03.218Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-01-31T17:45:03.218Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Emily. Only E..."
+[2026-01-31T17:45:03.218Z] [Video API] Frames: 120
+[2026-01-31T17:45:03.518Z] [Video API] RunPod Failed: ComfyUI Error: 400
+[2026-01-31T17:45:16.198Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T17:45:16.202Z] Payload Received: prompt=Talking video of Emily. Only E... type=lipsync hasImage=true hasAudio=true
+[2026-01-31T17:45:16.202Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-01-31T17:45:16.203Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Emily. Only E..."
+[2026-01-31T17:45:16.203Z] [Video API] Frames: 120
+[2026-01-31T17:45:16.755Z] [Video API] RunPod Failed: ComfyUI Error: 400
+[2026-01-31T17:45:44.711Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T17:45:44.715Z] Payload Received: prompt=Talking video of Emily. Only E... type=lipsync hasImage=true hasAudio=true
+[2026-01-31T17:45:44.715Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-01-31T17:45:44.716Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Emily. Only E..."
+[2026-01-31T17:45:44.716Z] [Video API] Frames: 120
+[2026-01-31T17:52:51.668Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T17:52:51.673Z] Payload Received: prompt=Talking video of Emily. Only E... type=lipsync hasImage=true hasAudio=true
+[2026-01-31T17:52:51.674Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-01-31T17:52:51.674Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Emily. Only E..."
+[2026-01-31T17:52:51.674Z] [Video API] Frames: 120
+[2026-01-31T18:01:44.515Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T18:01:44.545Z] Payload Received: prompt=Talking video of Emily. Only E... type=lipsync hasImage=true hasAudio=true
+[2026-01-31T18:01:44.545Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-01-31T18:01:44.545Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Emily. Only E..."
+[2026-01-31T18:01:44.546Z] [Video API] Frames: 120
+[2026-01-31T22:22:14.562Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T22:22:14.563Z] Payload Received: prompt=Cinematic shot of POV from Ben... type=standard hasImage=true hasAudio=false
+[2026-01-31T22:22:14.563Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Cinematic shot of POV from Ben..."
+[2026-01-31T22:22:14.563Z] [Video API] Frames: 120
+[2026-01-31T22:25:18.592Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T22:25:18.592Z] Payload Received: prompt=Cinematic shot of POV from Ben... type=standard hasImage=true hasAudio=false
+[2026-01-31T22:25:18.593Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Cinematic shot of POV from Ben..."
+[2026-01-31T22:25:18.593Z] [Video API] Frames: 120
+[2026-01-31T22:26:25.501Z] !!! API POST REQUEST RECEIVED !!!
+[2026-01-31T22:26:25.501Z] Payload Received: prompt=Cinematic shot of POV from Ben... type=standard hasImage=true hasAudio=false
+[2026-01-31T22:26:25.501Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Cinematic shot of POV from Ben..."
+[2026-01-31T22:26:25.501Z] [Video API] Frames: 120
+[2026-02-01T09:01:49.434Z] !!! API POST REQUEST RECEIVED !!!
+[2026-02-01T09:01:49.435Z] Payload Received: prompt=Talking video of Ben. Only Ben... type=lipsync hasImage=true hasAudio=true
+[2026-02-01T09:01:49.435Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-02-01T09:01:49.435Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Ben. Only Ben..."
+[2026-02-01T09:01:49.435Z] [Video API] Frames: 120
+[2026-02-01T11:28:28.696Z] !!! API POST REQUEST RECEIVED !!!
+[2026-02-01T11:28:28.697Z] Payload Received: prompt=Talking video of Clara. Only C... type=lipsync hasImage=true hasAudio=true
+[2026-02-01T11:28:28.697Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-02-01T11:28:28.697Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Clara. Only C..."
+[2026-02-01T11:28:28.697Z] [Video API] Frames: 120
+[2026-02-01T11:33:01.705Z] !!! API POST REQUEST RECEIVED !!!
+[2026-02-01T11:33:01.705Z] Payload Received: prompt=Talking video of Ben. Only Ben... type=lipsync hasImage=true hasAudio=true
+[2026-02-01T11:33:01.706Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-02-01T11:33:01.706Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Ben. Only Ben..."
+[2026-02-01T11:33:01.706Z] [Video API] Frames: 120
+[2026-02-01T11:45:20.184Z] [Video API] RunPod Success! URL: https://g4oysjh535la54-8188.proxy.runpod.net/view?filename=HunyuanVideo_00001_.mp4&type=output
+[2026-02-01T13:11:24.537Z] !!! API POST REQUEST RECEIVED !!!
+[2026-02-01T13:11:24.537Z] Payload Received: prompt=Talking video of Ben. Only Ben... type=lipsync hasImage=true hasAudio=true
+[2026-02-01T13:11:24.537Z] FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)
+[2026-02-01T13:11:24.537Z] [Video API] Starting HunyuanVideo (RunPod). Prompt: "Talking video of Ben. Only Ben..."
+[2026-02-01T13:11:24.538Z] [Video API] Frames: 120

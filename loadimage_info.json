@@ -1,0 +1,15 @@
+{
+  "required": {
+    "image": [
+      [
+        "clara_ref_tuning (1).png",
+        "clara_ref_tuning.png",
+        "example.png",
+        "ref.png"
+      ],
+      {
+        "image_upload": true
+      }
+    ]
+  }
+}

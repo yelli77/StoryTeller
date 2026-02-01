@@ -1,0 +1,25 @@
+{
+  "required": {
+    "samples": [
+      "LATENT"
+    ],
+    "upscale_method": [
+      [
+        "nearest-exact",
+        "bilinear",
+        "area",
+        "bicubic",
+        "bislerp"
+      ]
+    ],
+    "scale_by": [
+      "FLOAT",
+      {
+        "default": 1.5,
+        "min": 0.01,
+        "max": 8,
+        "step": 0.01
+      }
+    ]
+  }
+}

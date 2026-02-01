@@ -1,0 +1,2 @@
+instantid-controlnet-sdxl.safetensors
+instantid-controlnet.safetensors

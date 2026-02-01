@@ -30,6 +30,7 @@ export default function Home() {
         <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
         <div className="flex gap-4">
           <a href="/story" className="btn-primary">New Script</a>
+          <a href="/studio" className="btn-primary bg-purple-600 hover:bg-purple-500 border-purple-400">Manual Studio</a>
           <a href="/characters" className="btn-secondary">Add Character</a>
         </div>
       </div>

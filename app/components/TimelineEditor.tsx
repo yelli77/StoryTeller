@@ -5,9 +5,10 @@ interface TimelineEditorProps {
     onRegenerate: (index: number) => void;
     onRegenerateVideo: (index: number) => void;
     onGenerateNext: (index: number) => void;
+    onCancel: (index: number) => void;
 }
 
-export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo, onGenerateNext }: TimelineEditorProps) {
+export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo, onGenerateNext, onCancel }: TimelineEditorProps) {
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const audioRefs = useRef<(HTMLAudioElement | null)[]>([]);
 
@@ -79,16 +80,33 @@ export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo,
                                     {/* Loading Overlay */}
                                     {clip.loading && (
                                         <div
-                                            className={`absolute inset-0 z-30 flex flex-col items-center justify-center ${clip.generated_start_image ? 'bg-black/20 cursor-zoom-in' : 'bg-black/70 backdrop-blur-sm'} transition-all duration-700`}
-                                            onClick={() => clip.generated_start_image && setZoomedImage(clip.generated_start_image)}
+                                            className={`absolute inset-0 z-30 flex flex-col items-center justify-center p-4 ${clip.generated_start_image ? 'bg-black/40' : 'bg-black/80 backdrop-blur-md'} transition-all duration-700`}
                                         >
-                                            <div className="relative">
-                                                <div className="w-16 h-16 border-4 border-[var(--primary)]/20 border-t-[var(--primary)] rounded-full animate-spin"></div>
+                                            <div className="relative mb-4">
+                                                <div className="w-16 h-16 border-4 border-[var(--primary)]/10 border-t-[var(--primary)] rounded-full animate-spin"></div>
                                                 <div className="absolute inset-0 flex items-center justify-center text-xl animate-pulse">☢️</div>
                                             </div>
-                                            <p className={`mt-4 text-xs font-bold text-[var(--primary)] uppercase tracking-widest animate-pulse ${clip.generated_start_image ? 'bg-black/60 px-3 py-1 rounded-full backdrop-blur-md' : ''}`}>
-                                                {clip.generated_start_image ? 'Alchemizing Video' : 'Syncing Grok Imagine'}
-                                            </p>
+
+                                            <div className="w-full max-w-[200px] space-y-2 text-center">
+                                                <p className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest animate-pulse">
+                                                    {clip.status || (clip.generated_start_image ? 'Alchemizing Video' : 'Syncing Grok Imagine')}
+                                                </p>
+
+                                                {/* Progress Bar */}
+                                                <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-[var(--primary)] transition-all duration-500 ease-out shadow-[0_0_10px_var(--primary)]"
+                                                        style={{ width: `${clip.progress || 0}%` }}
+                                                    ></div>
+                                                </div>
+
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); onCancel(i); }}
+                                                    className="mt-4 text-[10px] text-gray-500 hover:text-white transition-colors uppercase tracking-widest font-bold"
+                                                >
+                                                    [ Cancel Generation ]
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
 

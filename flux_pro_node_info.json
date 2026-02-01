@@ -1,0 +1,362 @@
+{
+  "FluxProUltraImageNode": {
+    "input": {
+      "required": {
+        "prompt": [
+          "STRING",
+          {
+            "tooltip": "Prompt for the image generation",
+            "default": "",
+            "multiline": true
+          }
+        ],
+        "prompt_upsampling": [
+          "BOOLEAN",
+          {
+            "tooltip": "Whether to perform upsampling on the prompt. If active, automatically modifies the prompt for more creative generation, but results are nondeterministic (same seed will not produce exactly the same result).",
+            "default": false
+          }
+        ],
+        "seed": [
+          "INT",
+          {
+            "tooltip": "The random seed used for creating the noise.",
+            "default": 0,
+            "min": 0,
+            "max": 18446744073709552000,
+            "control_after_generate": true
+          }
+        ],
+        "aspect_ratio": [
+          "STRING",
+          {
+            "tooltip": "Aspect ratio of image; must be between 1:4 and 4:1.",
+            "default": "16:9",
+            "multiline": false
+          }
+        ],
+        "raw": [
+          "BOOLEAN",
+          {
+            "tooltip": "When True, generate less processed, more natural-looking images.",
+            "default": false
+          }
+        ]
+      },
+      "optional": {
+        "image_prompt": [
+          "IMAGE",
+          {}
+        ],
+        "image_prompt_strength": [
+          "FLOAT",
+          {
+            "tooltip": "Blend between the prompt and the image prompt.",
+            "default": 0.1,
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          }
+        ]
+      },
+      "hidden": {
+        "auth_token_comfy_org": [
+          "AUTH_TOKEN_COMFY_ORG"
+        ],
+        "api_key_comfy_org": [
+          "API_KEY_COMFY_ORG"
+        ],
+        "unique_id": [
+          "UNIQUE_ID"
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "prompt",
+        "prompt_upsampling",
+        "seed",
+        "aspect_ratio",
+        "raw"
+      ],
+      "optional": [
+        "image_prompt",
+        "image_prompt_strength"
+      ],
+      "hidden": [
+        "auth_token_comfy_org",
+        "api_key_comfy_org",
+        "unique_id"
+      ]
+    },
+    "output": [
+      "IMAGE"
+    ],
+    "output_is_list": [
+      false
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_tooltips": [
+      null
+    ],
+    "output_matchtypes": null,
+    "name": "FluxProUltraImageNode",
+    "display_name": "Flux 1.1 [pro] Ultra Image",
+    "description": "Generates images using Flux Pro 1.1 Ultra via api based on prompt and resolution.",
+    "python_module": "comfy_api_nodes.nodes_bfl",
+    "category": "api node/image/BFL",
+    "output_node": false,
+    "deprecated": false,
+    "experimental": false,
+    "dev_only": false,
+    "api_node": true,
+    "price_badge": {
+      "engine": "jsonata",
+      "depends_on": {
+        "widgets": [],
+        "inputs": [],
+        "input_groups": []
+      },
+      "expr": "{\"type\":\"usd\",\"usd\":0.06}"
+    },
+    "search_aliases": null
+  },
+  "FluxKontextProImageNode": {
+    "input": {
+      "required": {
+        "prompt": [
+          "STRING",
+          {
+            "tooltip": "Prompt for the image generation - specify what and how to edit.",
+            "default": "",
+            "multiline": true
+          }
+        ],
+        "aspect_ratio": [
+          "STRING",
+          {
+            "tooltip": "Aspect ratio of image; must be between 1:4 and 4:1.",
+            "default": "16:9",
+            "multiline": false
+          }
+        ],
+        "guidance": [
+          "FLOAT",
+          {
+            "tooltip": "Guidance strength for the image generation process",
+            "default": 3,
+            "min": 0.1,
+            "max": 99,
+            "step": 0.1
+          }
+        ],
+        "steps": [
+          "INT",
+          {
+            "tooltip": "Number of steps for the image generation process",
+            "default": 50,
+            "min": 1,
+            "max": 150
+          }
+        ],
+        "seed": [
+          "INT",
+          {
+            "tooltip": "The random seed used for creating the noise.",
+            "default": 1234,
+            "min": 0,
+            "max": 18446744073709552000,
+            "control_after_generate": true
+          }
+        ],
+        "prompt_upsampling": [
+          "BOOLEAN",
+          {
+            "tooltip": "Whether to perform upsampling on the prompt. If active, automatically modifies the prompt for more creative generation, but results are nondeterministic (same seed will not produce exactly the same result).",
+            "default": false
+          }
+        ]
+      },
+      "optional": {
+        "input_image": [
+          "IMAGE",
+          {}
+        ]
+      },
+      "hidden": {
+        "auth_token_comfy_org": [
+          "AUTH_TOKEN_COMFY_ORG"
+        ],
+        "api_key_comfy_org": [
+          "API_KEY_COMFY_ORG"
+        ],
+        "unique_id": [
+          "UNIQUE_ID"
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "prompt",
+        "aspect_ratio",
+        "guidance",
+        "steps",
+        "seed",
+        "prompt_upsampling"
+      ],
+      "optional": [
+        "input_image"
+      ],
+      "hidden": [
+        "auth_token_comfy_org",
+        "api_key_comfy_org",
+        "unique_id"
+      ]
+    },
+    "output": [
+      "IMAGE"
+    ],
+    "output_is_list": [
+      false
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_tooltips": [
+      null
+    ],
+    "output_matchtypes": null,
+    "name": "FluxKontextProImageNode",
+    "display_name": "Flux.1 Kontext [pro] Image",
+    "description": "Edits images using Flux.1 Kontext [pro] via api based on prompt and aspect ratio.",
+    "python_module": "comfy_api_nodes.nodes_bfl",
+    "category": "api node/image/BFL",
+    "output_node": false,
+    "deprecated": false,
+    "experimental": false,
+    "dev_only": false,
+    "api_node": true,
+    "price_badge": null,
+    "search_aliases": null
+  },
+  "FluxKontextMaxImageNode": {
+    "input": {
+      "required": {
+        "prompt": [
+          "STRING",
+          {
+            "tooltip": "Prompt for the image generation - specify what and how to edit.",
+            "default": "",
+            "multiline": true
+          }
+        ],
+        "aspect_ratio": [
+          "STRING",
+          {
+            "tooltip": "Aspect ratio of image; must be between 1:4 and 4:1.",
+            "default": "16:9",
+            "multiline": false
+          }
+        ],
+        "guidance": [
+          "FLOAT",
+          {
+            "tooltip": "Guidance strength for the image generation process",
+            "default": 3,
+            "min": 0.1,
+            "max": 99,
+            "step": 0.1
+          }
+        ],
+        "steps": [
+          "INT",
+          {
+            "tooltip": "Number of steps for the image generation process",
+            "default": 50,
+            "min": 1,
+            "max": 150
+          }
+        ],
+        "seed": [
+          "INT",
+          {
+            "tooltip": "The random seed used for creating the noise.",
+            "default": 1234,
+            "min": 0,
+            "max": 18446744073709552000,
+            "control_after_generate": true
+          }
+        ],
+        "prompt_upsampling": [
+          "BOOLEAN",
+          {
+            "tooltip": "Whether to perform upsampling on the prompt. If active, automatically modifies the prompt for more creative generation, but results are nondeterministic (same seed will not produce exactly the same result).",
+            "default": false
+          }
+        ]
+      },
+      "optional": {
+        "input_image": [
+          "IMAGE",
+          {}
+        ]
+      },
+      "hidden": {
+        "auth_token_comfy_org": [
+          "AUTH_TOKEN_COMFY_ORG"
+        ],
+        "api_key_comfy_org": [
+          "API_KEY_COMFY_ORG"
+        ],
+        "unique_id": [
+          "UNIQUE_ID"
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "prompt",
+        "aspect_ratio",
+        "guidance",
+        "steps",
+        "seed",
+        "prompt_upsampling"
+      ],
+      "optional": [
+        "input_image"
+      ],
+      "hidden": [
+        "auth_token_comfy_org",
+        "api_key_comfy_org",
+        "unique_id"
+      ]
+    },
+    "output": [
+      "IMAGE"
+    ],
+    "output_is_list": [
+      false
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "output_tooltips": [
+      null
+    ],
+    "output_matchtypes": null,
+    "name": "FluxKontextMaxImageNode",
+    "display_name": "Flux.1 Kontext [max] Image",
+    "description": "Edits images using Flux.1 Kontext [pro] via api based on prompt and aspect ratio.",
+    "python_module": "comfy_api_nodes.nodes_bfl",
+    "category": "api node/image/BFL",
+    "output_node": false,
+    "deprecated": false,
+    "experimental": false,
+    "dev_only": false,
+    "api_node": true,
+    "price_badge": null,
+    "search_aliases": null
+  }
+}

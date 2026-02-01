@@ -1,0 +1,18 @@
+{
+  "IPAdapterModelLoader": [
+    "IPADAPTER"
+  ],
+  "CLIPVisionLoader": [
+    "CLIP_VISION"
+  ],
+  "InstantIDModelLoader": [
+    "INSTANTID"
+  ],
+  "ControlNetLoader": [
+    "CONTROL_NET"
+  ],
+  "LoadImage": [
+    "IMAGE",
+    "MASK"
+  ]
+}

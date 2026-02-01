@@ -1,0 +1,10 @@
+{
+  "ApplyInstantID": [
+    "MODEL",
+    "CONDITIONING",
+    "CONDITIONING"
+  ],
+  "IPAdapterAdvanced": [
+    "MODEL"
+  ]
+}

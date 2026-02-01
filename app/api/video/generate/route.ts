@@ -1,47 +1,52 @@
 import { NextResponse } from 'next/server';
-import { generateKieVideo, generateKieLipSync } from '@/app/lib/kie';
-import { generateVideo } from '@/app/lib/veo';
+import { generateKieLipSync } from '@/app/lib/kie';
+import { generateRunpodVideo } from '@/app/lib/runpod';
+import fs from 'fs';
+import path from 'path';
+
+function logToFile(msg: string) {
+    const logPath = 'c:/AI/github/StoryTeller/StoryTeller/api-debug.log';
+    const timestamp = new Date().toISOString();
+    fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
+}
 
 export async function POST(request: Request) {
+    logToFile("!!! API POST REQUEST RECEIVED !!!");
     try {
-        const { prompt, startImage, duration, type, audioUrl } = await request.json();
+        const payload = await request.json();
+        let { prompt, startImage, duration, type, audioUrl } = payload;
+        logToFile(`Payload Received: prompt=${prompt?.substring(0, 30)}... type=${type} hasImage=${!!startImage} hasAudio=${!!audioUrl}`);
 
+        // FORCED BLACKWELL MODE: Everything goes to RunPod for now
         if (type === 'lipsync') {
-            if (!startImage || !audioUrl) {
-                return NextResponse.json({ error: 'Lip-sync requires startImage and audioUrl' }, { status: 400 });
-            }
-            console.log(`[Video API] Requesting Lip-Sync from Kie.ai (Infinitalk)`);
-            const result = await generateKieLipSync(prompt || "Talking avatar", startImage, audioUrl);
-            if (result.success && result.videoUrl) {
-                return NextResponse.json({ video: result.videoUrl, id: result.taskId });
-            } else {
-                return NextResponse.json({ error: result.error || "Lip-sync failed" }, { status: 500 });
-            }
+            logToFile("FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)");
+            type = 'standard';
         }
 
         if (!prompt) {
+            logToFile("ERROR: Prompt missing");
             return NextResponse.json({ error: 'Prompt required' }, { status: 400 });
         }
 
-        if (!startImage) {
-            console.error("[Video API] Missing startImage for Image-to-Video generation.");
-            return NextResponse.json({ error: 'Image-to-Video requires a startImage. Please ensure the image generation step succeeded.' }, { status: 400 });
-        }
+        logToFile(`[Video API] Starting HunyuanVideo (RunPod). Prompt: "${prompt.substring(0, 30)}..."`);
 
-        console.log(`[Video API] Requesting video from Kie.ai. Prompt: "${prompt.substring(0, 30)}...", Duration: ${duration}s, Image Size: ${Math.round(startImage.length / 1024)} KB`);
+        const durationInSeconds = typeof duration === 'number' ? duration : parseInt(duration) || 2;
+        const frames = durationInSeconds * 24;
+        logToFile(`[Video API] Frames: ${frames}`);
 
-        const result = await generateKieVideo(prompt, startImage, duration?.toString() || "5");
+        const result = await generateRunpodVideo(prompt, frames, startImage);
 
         if (result.success && result.videoUrl) {
-            console.log("[Video API] Kie.ai Success!");
-            return NextResponse.json({ video: result.videoUrl, id: result.taskId });
+            logToFile(`[Video API] RunPod Success! URL: ${result.videoUrl}`);
+            return NextResponse.json({ video: result.videoUrl, id: "runpod-" + Date.now() });
         } else {
-            console.error("[Video API] Kie.ai Failed:", result.error);
-            return NextResponse.json({ error: result.error || "Video generation failed" }, { status: 500 });
+            logToFile(`[Video API] RunPod Failed: ${result.error}`);
+            return NextResponse.json({ error: result.error || "RunPod Video generation failed" }, { status: 500 });
         }
 
     } catch (error: any) {
-        console.error("[Video API] Final Error:", error);
+        logToFile(`CRITICAL ERROR in API: ${error.message}`);
+        console.error("[Video API] CRITICAL ERROR:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

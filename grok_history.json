@@ -1,0 +1,100 @@
+{
+  "244c6268-cf29-4fce-addc-dc18cf18b2e1": {
+    "prompt": [
+      1089,
+      "244c6268-cf29-4fce-addc-dc18cf18b2e1",
+      {
+        "1": {
+          "inputs": {
+            "image": "clara_ref.png"
+          },
+          "class_type": "LoadImage"
+        },
+        "2": {
+          "inputs": {
+            "model": "grok-imagine-image-beta",
+            "image": [
+              "1",
+              0
+            ],
+            "prompt": "The woman in the image is now sitting in a cozy sunlit cafe, holding a steaming cup of latte. Beautiful bokeh background, cinematic photography, high detail, masterpiece.",
+            "resolution": "1K",
+            "number_of_images": 1,
+            "seed": 42
+          },
+          "class_type": "GrokImageEditNode"
+        },
+        "3": {
+          "inputs": {
+            "images": [
+              "2",
+              0
+            ],
+            "filename_prefix": "GrokTest"
+          },
+          "class_type": "SaveImage"
+        }
+      },
+      {
+        "create_time": 1769944247438
+      },
+      [
+        "3"
+      ]
+    ],
+    "outputs": {},
+    "status": {
+      "status_str": "error",
+      "completed": false,
+      "messages": [
+        [
+          "execution_start",
+          {
+            "prompt_id": "244c6268-cf29-4fce-addc-dc18cf18b2e1",
+            "timestamp": 1769944247439
+          }
+        ],
+        [
+          "execution_cached",
+          {
+            "nodes": [],
+            "prompt_id": "244c6268-cf29-4fce-addc-dc18cf18b2e1",
+            "timestamp": 1769944247572
+          }
+        ],
+        [
+          "execution_error",
+          {
+            "prompt_id": "244c6268-cf29-4fce-addc-dc18cf18b2e1",
+            "node_id": "2",
+            "node_type": "GrokImageEditNode",
+            "executed": [
+              "1"
+            ],
+            "exception_message": "Unauthorized: Please login first to use this node.\n",
+            "exception_type": "Exception",
+            "traceback": [
+              "  File \"/workspace/runpod-slim/ComfyUI/execution.py\", line 439, in execute\n    raise ex\n",
+              "  File \"/workspace/runpod-slim/ComfyUI/execution.py\", line 435, in execute\n    results.append(r.result())\n                   ^^^^^^^^^^\n",
+              "  File \"/workspace/runpod-slim/ComfyUI/execution.py\", line 280, in async_wrapper\n    return await f(**args)\n           ^^^^^^^^^^^^^^^\n",
+              "  File \"/workspace/runpod-slim/ComfyUI/comfy_api/internal/__init__.py\", line 145, in wrapped_async_func\n    return await method(locked_class, **inputs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n",
+              "  File \"/workspace/runpod-slim/ComfyUI/comfy_api/latest/_io.py\", line 1685, in EXECUTE_NORMALIZED_ASYNC\n    to_return = await cls.execute(*args, **kwargs)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n",
+              "  File \"/workspace/runpod-slim/ComfyUI/comfy_api_nodes/nodes_grok.py\", line 198, in execute\n    response = await sync_op(\n               ^^^^^^^^^^^^^^\n",
+              "  File \"/workspace/runpod-slim/ComfyUI/comfy_api_nodes/util/client.py\", line 107, in sync_op\n    raw = await sync_op_raw(\n          ^^^^^^^^^^^^^^^^^^\n",
+              "  File \"/workspace/runpod-slim/ComfyUI/comfy_api_nodes/util/client.py\", line 226, in sync_op_raw\n    return await _request_base(cfg, expect_binary=as_binary)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n",
+              "  File \"/workspace/runpod-slim/ComfyUI/comfy_api_nodes/util/client.py\", line 737, in _request_base\n    raise Exception(msg)\n"
+            ],
+            "current_inputs": {},
+            "current_outputs": [
+              "1",
+              "3",
+              "2"
+            ],
+            "timestamp": 1769944247970
+          }
+        ]
+      ]
+    },
+    "meta": {}
+  }
+}

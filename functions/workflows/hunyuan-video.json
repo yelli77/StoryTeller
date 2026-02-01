@@ -4,9 +4,9 @@
             "model_name": "hunyuan_video_720_cfg_distill_fp8_e4m3fn.safetensors",
             "weight_dtype": "default",
             "compute_dtype": "default",
-            "patch_cublaslinear": false,
-            "sage_attention": "disabled",
-            "enable_fp16_accumulation": false
+            "patch_cublaslinear": true,
+            "sage_attention": "auto",
+            "enable_fp16_accumulation": true
         },
         "class_type": "DiffusionModelLoaderKJ"
     },
@@ -38,8 +38,8 @@
     },
     "5": {
         "inputs": {
-            "width": 480,
-            "height": 848,
+            "width": 720,
+            "height": 1280,
             "length": "{{DURATION}}",
             "batch_size": 1
         },
@@ -48,8 +48,8 @@
     "6": {
         "inputs": {
             "seed": 42,
-            "steps": 6,
-            "cfg": 1.0,
+            "steps": 12,
+            "cfg": 6.0,
             "sampler_name": "euler",
             "scheduler": "simple",
             "denoise": 1.0,

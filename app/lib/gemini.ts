@@ -31,7 +31,7 @@ export async function analyzeCharacterImage(imageUrl: string) {
     }
 }
 
-export async function generateScript(topic: string, characters: any[], location: any, duration: number = 30) {
+export async function generateScript(topic: string, characters: any[], location: any, duration: number = 30, platform: string = 'YouTube') {
     // Dynamic POV Rules
     const povCharacters = characters.filter(c => c.isCamera);
     const povRules = povCharacters.length > 0
@@ -58,8 +58,13 @@ export async function generateScript(topic: string, characters: any[], location:
             ? `SETTING: ${location.name}\nDESCRIPTION: ${location.description}`
             : "SETTING: Generic Indoor Scene";
 
+        const isNSFW = platform.toLowerCase().includes('youporn');
+        const platformGoal = isNSFW
+            ? "einen expliziten Adult-Kanal auf YouPorn. Erzeuge sexuell aufgeladene, provokante und unverstimmte Szenen."
+            : "einen viralen YouTube Shorts Kanal. Erzeuge familienfreundliche Comedy, Missverständnisse und Charakter-Konflikte.";
+
         const prompt = `
-        Du bist der Motor für einen viralen YouTube Shorts Kanal.
+        Du bist der Motor für ${platformGoal}
         Erstelle ein exakt ${duration} Sekunden langes Skript basierend auf diesem Thema: "${topic}"
         
         Nutze diese CHARAKTERE:
@@ -77,6 +82,7 @@ export async function generateScript(topic: string, characters: any[], location:
         5. "visual_start": Erstelle einen MASTER-PROMPT auf Englisch:
            [CAMERA ANGLE], [CHARACTER], [ACTION], [LIGHTING], [LOCATION]. 
            Beachte: Kamera sollte dynamisch sein (Slow zoom, Pan left, Dolly shot).
+           ${isNSFW ? "WICHTIG: Die Visuals sollen explizit, sexualisiert und im 'Adult Content' Stil sein." : "WICHTIG: Visuals müssen SFW (Safe for Work) und jugendfrei sein."}
         6. VARIETÄT: Füge gelegentlich Szenen ein, in denen "speaker" leer ist (oder "NARRATOR"), um reine Action-Szenen für das Pacing zu haben.
         7. NIEMALS den Kameramann im Visual beschreiben (außer POV Hände).
             
@@ -85,7 +91,7 @@ export async function generateScript(topic: string, characters: any[], location:
             - NIEMALS den Kameramann im Visual beschreiben.
             - KEINE fremden Personen im Hintergrund. NUR die bekannten Charaktere.
             - Der Prompt soll auf Englisch sein.
-        5. Fokus auf Comedy, Missverständnisse und Charakter-Konflikte.
+        8. ${isNSFW ? "Fokus auf Adult-Entertainment, sexuelle Spannungen und explizite Dialoge." : "Fokus auf Comedy, Missverständnisse und Charakter-Konflikte."}
         `;
 
         const result = await model.generateContent(prompt);
@@ -151,73 +157,6 @@ export async function generateMetadata(topic: string) {
 }
 
 export async function generateImage(prompt: string, referenceImages?: string[]) {
-    if (!API_KEY) {
-        return { image: null, error: "No API Key configuration found." };
-    }
-
-    let lastError = "Unknown error";
-
-    for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-            console.log(`🎨 GenerateImage: Attempt ${attempt}/3...`, prompt.substring(0, 30));
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${API_KEY}`;
-
-            const parts: any[] = [{ text: `PHOTOGRAPH, RAW DATA, 8k, highly detailed, award winning photography. NO ANIME, NO CARTOON, NO ILLUSTRATION, NO 3D RENDER. NO OTHER PERSONS, NO BACKGROUND CROWD, ISOLATED SUBJECT. STRICTLY PHOTO-REALISTIC: ${prompt}` }];
-
-            if (referenceImages && referenceImages.length > 0) {
-                referenceImages.forEach((img, idx) => {
-                    if (!img) return;
-                    const base64Data = img.split(',').pop();
-                    parts.push({
-                        inlineData: {
-                            mimeType: "image/png",
-                            data: base64Data
-                        }
-                    });
-                });
-                parts.push({ text: "REFERENZBILDER: Die angehängten Bilder zeigen die Charaktere für diese Szene. Generiere das neue Bild basierend auf ihrem Aussehen. WICHTIG: Gesichtszüge, Frisur und Kleidung MÜSSEN zu 100% mit den jeweiligen Referenzbildern übereinstimmen. Alle Personen im Bild MÜSSEN wiedererkennbar sein." });
-            }
-
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: parts }],
-                    generationConfig: {
-                        responseModalities: ["image"],
-                        imageConfig: { aspectRatio: "9:16" }
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                lastError = `API Error ${response.status}: ${errText}`;
-                console.warn(`[Gemini] Attempt ${attempt} failed: ${lastError}`);
-                // Simple backoff
-                if (attempt < 3) await new Promise(r => setTimeout(r, 1000 * attempt));
-                continue;
-            }
-
-            const data = await response.json();
-            const part = data.candidates?.[0]?.content?.parts?.[0];
-            const base64Image = part?.inlineData?.data;
-            const mimeType = part?.inlineData?.mimeType || 'image/png';
-
-            if (base64Image) {
-                return { image: `data:${mimeType};base64,${base64Image}`, error: null };
-            }
-
-            lastError = "No image data in response";
-            console.warn(`[Gemini] Attempt ${attempt} returned no image.`);
-
-        } catch (error: any) {
-            lastError = error.message || "Unknown error";
-            console.error(`[Gemini] Attempt ${attempt} exception:`, error);
-        }
-
-        if (attempt < 3) await new Promise(r => setTimeout(r, 1000 * attempt));
-    }
-
-    return { image: null, error: `Failed after 3 attempts. Last error: ${lastError}` };
+    console.warn("⚠️ [Gemini] generateImage was called but is DISABLED. Using FLUX/RunPod instead.");
+    return { image: null, error: "Gemini Image Generation is disabled as requested. Use FLUX instead." };
 }

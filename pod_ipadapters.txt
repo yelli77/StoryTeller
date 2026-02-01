@@ -1,0 +1,2 @@
+ip-adapter-plus-face_sdxl_vit-h.safetensors
+ip-adapter_sdxl_vit-h.safetensors

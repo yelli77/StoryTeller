@@ -1,0 +1,3 @@
+instantid-ip-adapter.bin
+instantid-xl-v1.0.bin
+ip-adapter.bin

@@ -141,181 +141,150 @@ function prepareWorkflow(prompt: string, frames: number, startImageFilename?: st
 function prepareImageWorkflow(prompt: string, referenceImageBase64?: string, config?: any) {
     const seed = config?.manualSeed ?? Math.floor(Math.random() * 1000000);
 
-    // Professional Dual-Adapter Setup: InstantID (structure) + IP-Adapter (texture/soul)
-    const weight = config?.instantidWeight ?? 0.8;
-    const ipWeight = config?.ipWeight ?? 0.7;
-    const cfg = 1.5;
-    const endAt = config?.endAt ?? 0.8;
+    // Intelligent prompt enhancement for I2I
+    let enhancedPrompt = prompt;
+    let negativePrompt = "low quality, blurry, distorted, watermark, text, deformed";
 
-    const actionPrompt = prompt ? `(photograph:1.5), (highly detailed:1.2), ${prompt}` : '';
+    if (referenceImageBase64) {
+        // For I2I: Emphasize the action/pose while maintaining identity
+        enhancedPrompt = `The same person from the reference image, ${prompt}. IMPORTANT: Keep the exact same face, same person, same identity. Professional photograph, 8k, highly detailed.`;
+        negativePrompt = "different person, different face, wrong identity, face change, multiple people, low quality, blurry, distorted, watermark, text, deformed";
+    } else {
+        // For T2I: Standard enhancement
+        enhancedPrompt = `${prompt}. Professional photograph, 8k, highly detailed, cinematic lighting.`;
+    }
 
-    const posPrompt = config?.positivePrompt
-        ? `${actionPrompt}, ${config.positivePrompt}`
-        : `${actionPrompt}, raw photo, 8k uhd, cinematic lighting, masterpiece, ultra-realistic skin texture, centered composition`;
-
-    const negPrompt = config?.negativePrompt ?? "anime, cartoon, graphic, (worst quality, low quality:1.4), deformed, blurry, artifacts, text, watermark, different person, wrong face";
-
-    const steps = 15;
-
+    // Using HunyuanVideo in single-frame mode for image generation
+    // This gives us I2I capability via the HunyuanImageToVideo node
     const workflow: any = {
         "1": {
-            "inputs": { "ckpt_name": "juggernautXL_v9RdPhoto2Lightning.safetensors" },
-            "class_type": "CheckpointLoaderSimple"
+            "inputs": {
+                "model_name": "hunyuan_video_720_cfg_distill_fp8_e4m3fn.safetensors",
+                "weight_dtype": "fp8_e4m3fn",
+                "compute_dtype": "default",
+                "patch_cublaslinear": true,
+                "sage_attention": "disabled",
+                "enable_fp16_accumulation": true
+            },
+            "class_type": "DiffusionModelLoaderKJ"
         },
         "2": {
-            "inputs": { "text": posPrompt, "clip": ["1", 1] },
-            "class_type": "CLIPTextEncode"
+            "inputs": {
+                "vae_name": "hunyuan_video_vae_bf16.safetensors",
+                "device": "main_device",
+                "weight_dtype": "bf16"
+            },
+            "class_type": "VAELoaderKJ"
         },
         "3": {
-            "inputs": { "text": negPrompt, "clip": ["1", 1] },
+            "inputs": {
+                "text": enhancedPrompt,
+                "clip": ["4", 0]
+            },
             "class_type": "CLIPTextEncode"
         },
         "4": {
-            "inputs": { "width": 832, "height": 1216, "batch_size": 1 },
-            "class_type": "EmptyLatentImage"
+            "inputs": {
+                "clip_name1": "hunyuan_video_llm_1b.safetensors",
+                "clip_name2": "hunyuan_video_clip_L.safetensors",
+                "type": "hunyuan_video"
+            },
+            "class_type": "DualCLIPLoader"
         },
-        "5": {
-            "inputs": { "clip_name": "clip_vision_sdxl.safetensors" },
-            "class_type": "CLIPVisionLoader"
+        "7": {
+            "inputs": {
+                "text": negativePrompt,
+                "clip": ["4", 0]
+            },
+            "class_type": "CLIPTextEncode"
         }
     };
 
+    // If we have a reference image, use Image-to-Video with 1 frame for I2I
     if (referenceImageBase64) {
-        workflow["6"] = {
-            "inputs": { "image": referenceImageBase64 },
-            "class_type": "LoadImage"
-        };
-
-        // --- INSTANTID SETUP (Facial Structure) ---
-        workflow["7"] = {
-            "inputs": { "instantid_file": "instantid-ip-adapter.bin" },
-            "class_type": "InstantIDModelLoader"
-        };
-        workflow["8"] = {
-            "inputs": {
-                "provider": "CPU"
-            },
-            "class_type": "InstantIDFaceAnalysis"
-        };
-        workflow["9"] = {
-            "inputs": {
-                "instantid": ["7", 0],
-                "insightface": ["8", 0],
-                "control_net": ["10", 0],
-                "image": ["6", 0],
-                "model": ["1", 0],
-                "positive": ["2", 0],
-                "negative": ["3", 0],
-                "weight": weight,
-                "start_at": 0.0,
-                "end_at": endAt
-            },
-            "class_type": "ApplyInstantID"
-        };
-        workflow["10"] = {
-            "inputs": { "control_net_name": "instantid-controlnet-sdxl.safetensors" },
-            "class_type": "ControlNetLoader"
-        };
-
-        // --- IPADAPTER SETUP (Texture/Soul) ---
         workflow["11"] = {
-            "inputs": { "ipadapter_file": "ip-adapter-plus-face_sdxl_vit-h.safetensors" },
-            "class_type": "IPAdapterModelLoader"
+            "inputs": {
+                "image": referenceImageBase64
+            },
+            "class_type": "LoadImage"
         };
         workflow["12"] = {
             "inputs": {
-                "model": ["9", 0],
-                "ipadapter": ["11", 0],
-                "clip_vision": ["5", 0],
-                "image": ["6", 0],
-                "weight": ipWeight,
-                "weight_type": "linear",
-                "combine_embeds": "concat",
-                "embeds_scaling": "V only",
-                "start_at": 0.0,
-                "end_at": 1.0
+                "positive": ["3", 0],
+                "vae": ["2", 0],
+                "width": 720,
+                "height": 1280,
+                "length": 1,  // Single frame for image generation
+                "batch_size": 1,
+                "guidance_type": "v2 (replace)",  // v2 for better identity preservation
+                "start_image": ["11", 0]
             },
-            "class_type": "IPAdapterAdvanced"
+            "class_type": "HunyuanImageToVideo"
         };
-
-        // --- SAMPLING ---
-        workflow["13"] = {
+        workflow["6"] = {
             "inputs": {
                 "seed": seed,
-                "steps": steps,
-                "cfg": cfg,
-                "sampler_name": "dpmpp_sde",
-                "scheduler": "karras",
-                "denoise": 1.0,
-                "model": ["12", 0],
-                "positive": ["9", 1],
-                "negative": ["9", 2],
-                "latent_image": ["4", 0]
+                "steps": 35,  // More steps for better quality
+                "cfg": 1.5,  // Moderate CFG for balanced prompt adherence
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": 0.75,  // Sweet spot: preserves identity while allowing pose changes
+                "model": ["1", 0],
+                "positive": ["12", 0],
+                "negative": ["7", 0],
+                "latent_image": ["12", 1]
             },
             "class_type": "KSampler"
-        };
-
-        // High-Res Refinement Pass
-        workflow["14"] = {
-            "inputs": { "scale_by": 1.25, "upscale_method": "bilinear", "samples": ["13", 0] },
-            "class_type": "LatentUpscaleBy"
-        };
-        workflow["15"] = {
-            "inputs": {
-                "seed": seed,
-                "steps": 8,
-                "cfg": cfg,
-                "sampler_name": "dpmpp_sde",
-                "scheduler": "karras",
-                "denoise": 0.45,
-                "model": ["12", 0],
-                "positive": ["9", 1],
-                "negative": ["9", 2],
-                "latent_image": ["14", 0]
-            },
-            "class_type": "KSampler"
-        };
-
-        workflow["20"] = {
-            "inputs": { "samples": ["15", 0], "vae": ["1", 2] },
-            "class_type": "VAEDecode"
-        };
-        workflow["21"] = {
-            "inputs": { "filename_prefix": "StoryTeller_InstantID", "images": ["20", 0] },
-            "class_type": "SaveImage"
         };
     } else {
-        // Text-only mode
-        workflow["9"] = {
+        // Text-to-Image mode
+        workflow["5"] = {
+            "inputs": {
+                "width": 720,
+                "height": 1280,
+                "length": 1,
+                "batch_size": 1
+            },
+            "class_type": "EmptyHunyuanLatentVideo"
+        };
+        workflow["6"] = {
             "inputs": {
                 "seed": seed,
-                "steps": steps,
-                "cfg": cfg,
-                "sampler_name": "dpmpp_sde",
-                "scheduler": "karras",
+                "steps": 20,
+                "cfg": 1.0,
+                "sampler_name": "euler",
+                "scheduler": "simple",
                 "denoise": 1.0,
                 "model": ["1", 0],
-                "positive": ["2", 0],
-                "negative": ["3", 0],
-                "latent_image": ["4", 0]
+                "positive": ["3", 0],
+                "negative": ["7", 0],
+                "latent_image": ["5", 0]
             },
             "class_type": "KSampler"
         };
-        workflow["20"] = {
-            "inputs": { "samples": ["9", 0], "vae": ["1", 2] },
-            "class_type": "VAEDecode"
-        };
-        workflow["21"] = {
-            "inputs": { "filename_prefix": "StoryTeller_TextOnly", "images": ["20", 0] },
-            "class_type": "SaveImage"
-        };
     }
+
+    workflow["8"] = {
+        "inputs": {
+            "samples": ["6", 0],
+            "vae": ["2", 0]
+        },
+        "class_type": "VAEDecode"
+    };
+
+    workflow["9"] = {
+        "inputs": {
+            "images": ["8", 0],
+            "filename_prefix": "StoryTeller_Hunyuan"
+        },
+        "class_type": "SaveImage"
+    };
 
     return workflow;
 }
 
 /**
- * Helper to upload a base64 image to the ComfyUI pod
+ * Helper to upload a Base64 image to the Pod
  */
 async function uploadImageToPod(base64Image: string): Promise<string> {
     // Convert base64 to blob
