@@ -1,7 +1,7 @@
-
+require('dotenv').config({ path: '.env.local' });
 const fetch = require('node-fetch');
-const apiKey = 'rpa_QBFOXWXK7H1XAG7CCKXXTSYO5BH8EDIHW3A7TLOLeaxlz8';
-const podId = '8t1hif70q426k9';
+const apiKey = process.env.RUNPOD_API_KEY;
+const podId = process.env.RUNPOD_POD_ID;
 
 async function getLogs() {
     try {
