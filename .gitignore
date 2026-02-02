@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# User added
+*.zip
+lint_report*.txt
+/training_data/
+/public/characters/
+/public/locations/
