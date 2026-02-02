@@ -1,9 +1,17 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+
+interface Location {
+    id: string;
+    name: string;
+    description: string;
+    image?: string;
+}
 
 export default function LocationDeck() {
-    const [locations, setLocations] = useState<any[]>([]);
+    const [locations, setLocations] = useState<Location[]>([]);
 
     useEffect(() => {
         fetch('/api/locations')
@@ -59,7 +67,13 @@ export default function LocationDeck() {
                                 loc.image.startsWith('<svg') ? (
                                     <div className="w-full h-full bg-gray-900" dangerouslySetInnerHTML={{ __html: loc.image }} />
                                 ) : (
-                                    <img src={loc.image} alt={loc.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                    <Image
+                                        src={loc.image}
+                                        alt={loc.name}
+                                        fill
+                                        className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    />
                                 )
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-700">No Image</div>

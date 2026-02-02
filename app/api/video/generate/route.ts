@@ -1,52 +1,45 @@
 import { NextResponse } from 'next/server';
-import { generateKieLipSync } from '@/app/lib/kie';
 import { generateRunpodVideo } from '@/app/lib/runpod';
-import fs from 'fs';
-import path from 'path';
-
-function logToFile(msg: string) {
-    const logPath = 'c:/AI/github/StoryTeller/StoryTeller/api-debug.log';
-    const timestamp = new Date().toISOString();
-    fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
-}
 
 export async function POST(request: Request) {
-    logToFile("!!! API POST REQUEST RECEIVED !!!");
     try {
+        console.log("!!! API POST REQUEST RECEIVED !!!");
         const payload = await request.json();
-        let { prompt, startImage, duration, type, audioUrl } = payload;
-        logToFile(`Payload Received: prompt=${prompt?.substring(0, 30)}... type=${type} hasImage=${!!startImage} hasAudio=${!!audioUrl}`);
+        let { prompt, type } = payload;
+        const { startImage, duration, audioUrl } = payload;
+
+        console.log(`Payload Received: prompt=${prompt?.substring(0, 30)}... type=${type} hasImage=${!!startImage} hasAudio=${!!audioUrl}`);
 
         // FORCED BLACKWELL MODE: Everything goes to RunPod for now
         if (type === 'lipsync') {
-            logToFile("FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)");
+            console.log("FORCING BLACKWELL MODE: Diverting Lip-Sync request to HunyuanVideo (RunPod)");
             type = 'standard';
         }
 
         if (!prompt) {
-            logToFile("ERROR: Prompt missing");
+            console.error("ERROR: Prompt missing");
             return NextResponse.json({ error: 'Prompt required' }, { status: 400 });
         }
 
-        logToFile(`[Video API] Starting HunyuanVideo (RunPod). Prompt: "${prompt.substring(0, 30)}..."`);
+        console.log(`[Video API] Starting Video (RunPod). Prompt: "${prompt.substring(0, 30)}..."`);
 
         const durationInSeconds = typeof duration === 'number' ? duration : parseInt(duration) || 2;
         const frames = durationInSeconds * 24;
-        logToFile(`[Video API] Frames: ${frames}`);
+        console.log(`[Video API] Frames: ${frames}`);
 
-        const result = await generateRunpodVideo(prompt, frames, startImage);
+        const result = await generateRunpodVideo(prompt, frames, startImage, payload.visualConfig);
 
         if (result.success && result.videoUrl) {
-            logToFile(`[Video API] RunPod Success! URL: ${result.videoUrl}`);
+            console.log(`[Video API] RunPod Success! URL: ${result.videoUrl}`);
             return NextResponse.json({ video: result.videoUrl, id: "runpod-" + Date.now() });
         } else {
-            logToFile(`[Video API] RunPod Failed: ${result.error}`);
+            console.error(`[Video API] RunPod Failed: ${result.error}`);
             return NextResponse.json({ error: result.error || "RunPod Video generation failed" }, { status: 500 });
         }
 
-    } catch (error: any) {
-        logToFile(`CRITICAL ERROR in API: ${error.message}`);
-        console.error("[Video API] CRITICAL ERROR:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error("CRITICAL ERROR in API:", errorMessage);
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

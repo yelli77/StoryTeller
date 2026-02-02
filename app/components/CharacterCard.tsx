@@ -1,5 +1,6 @@
 "use client";
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -62,10 +63,12 @@ export default function CharacterCard({ character: initialChar }: { character: C
 
             <div className={`w-32 h-32 rounded-full overflow-hidden mb-4 border-2 shadow-[0_0_15px_var(--primary-glow)] relative transition-all ${character.isCamera ? 'grayscale opacity-50 border-gray-700 shadow-none' : 'border-[var(--primary)]'}`}>
                 {character.image ? (
-                    <img
+                    <Image
                         src={character.image}
                         alt={character.name}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        fill
+                        className="object-cover transition-transform group-hover:scale-110"
+                        sizes="128px"
                     />
                 ) : (
                     <div className="w-full h-full bg-gray-800 flex items-center justify-center text-2xl">?</div>

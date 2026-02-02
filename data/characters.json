@@ -2,24 +2,40 @@
   {
     "id": "1",
     "name": "Clara",
-    "role": "The Clumsy Naive One",
-    "traits": "Massive oversized head resting directly on chest, no visible neck, head sunk into shoulders, fleshy, round, chubby face, massive triple chin, obese body, heavy breasts, fleshy arms,  heavy figure. Wears thin round frame glasses and pink loose-fitting tshirt.",
+    "role": "The Main Lead",
+    "traits": "Beautiful woman with golden-brown hair, wearing glasses. Fit build, expressive eyes.",
     "voiceId": "21m00Tcm4TlvDq8ikWAM",
     "image": "/uploads/1769946501745-image_(1).jpg",
     "isCamera": false,
     "parameters": {
-      "instantidWeight": 1,
+      "instantidWeight": 0.95,
+      "ipWeight": 0.9,
       "cfg": 1.5,
       "endAt": 0.9,
-      "steps": 15,
-      "sampler": "euler_ancestral",
-      "scheduler": "normal",
-      "manualSeed": 69420
+      "ipEnd": 0.9,
+      "steps": 12
     },
     "visualConfig": {
-      "positivePrompt": "(massive oversized head resting directly on chest:2.2), (no visible neck space:2.5), (head sunk deep into shoulders:2.2), (extremely fleshy round chubby face:2.0), (massive triple chin:2.2), (neckless:2.5), (thin rimless round frame glasses:1.6), (long naturally straight honey brown hair with center part:1.7), (pink loose-fitting tshirt:1.3), (obese body:2.0), (massive heavy breasts:2.2), (fleshy arms:1.8), (full heavy figure:1.8), creamy flawless porcelain skin, high resolution",
-      "negativePrompt": "(plain background:1.8), (studio background:1.8), (solid background:1.8), (burning:1.5), (over-saturated:1.5), (grainy:1.5), (mottled skin:1.5), (slender:1.6), (fit body:1.5), (athletic:1.5), (thin neck:1.6), (sharp jawline:1.6), (thick glasses:1.6), (black heavy frames:1.6), (square glasses:1.5), (curly hair:1.5), (blonde hair:1.5), (dark clothing:1.3), gray background, neutral background, rainbow noise, digital artifacts, bad anatomy, low quality"
-    }
+      "positivePrompt": "raw photo, perfect likeness, (sleeveless grey athletic bodysuit:1.5), (matte cotton fabric:1.2), (clear lens rounded spectacles:1.4), (curvy fit voluptuous body:1.3), (wide hips:1.2), standing in a luxury swimming pool, golden-brown hair, cinematic lighting, masterpiece, 8k, ultra-realistic skin",
+      "negativePrompt": "(green clothing:1.5), (blue clothing:1.5), (teal:1.5), (turquoise:1.5), (naked:2.0), (nude:2.0), (generated sunglasses:1.5), (tinted glasses:1.4), (sequins:1.5), (sparkles:1.5), (shiny fabric:1.4), (wet look:1.2), (blue clothing:1.4), (unclothed:2.0), (exposed breasts:2.0), (cleavage:1.5), (lingerie:1.8), (long sleeves:1.6), (buttons:1.6), (sleeves:1.5), bad anatomy, low quality"
+    },
+    "referenceImages": [
+      "/characters/clara/ref/ref_1.png",
+      "/characters/clara/ref/ref_2.png",
+      "/characters/clara/ref/ref_3.png",
+      "/characters/clara/ref/ref_4.png",
+      "/characters/clara/ref/ref_5.png",
+      "/characters/clara/ref/ref_6.png",
+      "/characters/clara/ref/ref_7.png",
+      "/characters/clara/ref/ref_8.png",
+      "/characters/clara/ref/ref_9.png",
+      "/characters/clara/ref/ref_10.png",
+      "/characters/clara/ref/ref_11.png",
+      "/characters/clara/ref/ref_12.png",
+      "/characters/clara/ref/ref_13.png",
+      "/characters/clara/ref/ref_14.png",
+      "/characters/clara/ref/ref_15.png"
+    ]
   },
   {
     "id": "2",
@@ -34,26 +50,74 @@
     "id": "1769595416520",
     "name": "Emily",
     "role": "The Chill Best Friend",
-    "traits": "Emily ist der Gegenpol zu den Konflikten. Sie ist oft diejenige, die zweideutige Witze erst spät versteht oder durch ihre charmante Art Situationen entschärft (oder unbewusst erst richtig kompliziert macht). Sie verkörpert den „sexy & cute“ Faktor und spricht die Sehnsucht nach Harmonie an.",
+    "traits": "Emily ist der Gegenpol zu den Konflikten. Sie trägt meistens ein enges pinkes Oberteil.",
     "voiceId": "piTKgcLEGmPE4e6mEKli",
     "image": "/uploads/1769595391317-grok-image-c0d5e27e-d7a9-437b-b5bd-b82fc1e3f2de.png",
     "parameters": {
-      "instantidWeight": 1.5
+      "instantidWeight": 0.9,
+      "ipWeight": 0.85,
+      "cfg": 1.5,
+      "steps": 12,
+      "endAt": 0.8,
+      "ipEnd": 0.8
     },
     "visualConfig": {
-      "positivePrompt": "Exactly her face"
-    }
+      "positivePrompt": "raw photo, perfect likeness, (tight sleeveless pink top:1.3), highly detailed skin surface, subsurface scattering, cinematic lighting, masterpiece, 8k",
+      "negativePrompt": "(naked:2.0), (nude:2.0), (unclothed:2.0), (nsfw:2.0), (exposed breasts:2.0), (cleavage:1.5), (long sleeves:1.6), bad anatomy, low quality"
+    },
+    "referenceImages": [
+      "/characters/emily/ref/ref_1.png",
+      "/characters/emily/ref/ref_2.png",
+      "/characters/emily/ref/ref_3.png",
+      "/characters/emily/ref/ref_4.png",
+      "/characters/emily/ref/ref_5.png",
+      "/characters/emily/ref/ref_6.png",
+      "/characters/emily/ref/ref_7.png",
+      "/characters/emily/ref/ref_8.png",
+      "/characters/emily/ref/ref_9.png",
+      "/characters/emily/ref/ref_10.png",
+      "/characters/emily/ref/ref_11.png",
+      "/characters/emily/ref/ref_12.png",
+      "/characters/emily/ref/ref_13.png",
+      "/characters/emily/ref/ref_14.png",
+      "/characters/emily/ref/ref_15.png"
+    ]
   },
   {
     "id": "1769595634590",
     "name": "Mia",
     "role": "Die Drama-Queen / Die Komplizierte",
-    "traits": "Mia steht für die klassischen „Warum bist du sauer? – Gar nichts!“-Momente. Sie ist emotional, schnell beleidigt und liebt es, den männlichen Part herauszufordern. Ihr Schmollmund ist ihr Markenzeichen und sorgt für hohen Wiedererkennungswert in den Thumbnails, da starke Emotionen die Klickrate (CTR) massiv erhöhen.",
+    "traits": "Mia trägt oft ein elegantes aber enges Oberteil in Pink oder Violett.",
     "voiceId": "MF3mGyEYCl7XYWbV9V6O",
     "image": "/uploads/1769595579145-grok-image-905ac7e8-6545-4078-bb9f-684263a3acb0.png",
     "parameters": {
-      "instantidWeight": 1.5
+      "instantidWeight": 0.9,
+      "ipWeight": 0.85,
+      "cfg": 1.5,
+      "steps": 12,
+      "endAt": 0.8,
+      "ipEnd": 0.8
     },
-    "visualConfig": {}
+    "visualConfig": {
+      "positivePrompt": "raw photo, perfect likeness, (tight sleeveless pink v-neck top:1.3), emotional expression, masterpiece, 8k",
+      "negativePrompt": "(naked:2.0), (nude:2.0), (unclothed:2.0), (nsfw:20), (exposed breasts:2.0), (long sleeves:1.6), bad anatomy, low quality"
+    },
+    "referenceImages": [
+      "/characters/mia/ref/ref_1.png",
+      "/characters/mia/ref/ref_2.png",
+      "/characters/mia/ref/ref_3.png",
+      "/characters/mia/ref/ref_4.png",
+      "/characters/mia/ref/ref_5.png",
+      "/characters/mia/ref/ref_6.png",
+      "/characters/mia/ref/ref_7.png",
+      "/characters/mia/ref/ref_8.png",
+      "/characters/mia/ref/ref_9.png",
+      "/characters/mia/ref/ref_10.png",
+      "/characters/mia/ref/ref_11.png",
+      "/characters/mia/ref/ref_12.png",
+      "/characters/mia/ref/ref_13.png",
+      "/characters/mia/ref/ref_14.png",
+      "/characters/mia/ref/ref_15.png"
+    ]
   }
 ]

@@ -1,7 +1,35 @@
 import { useState, useRef } from 'react';
+import Image from 'next/image';
+
+export interface Clip {
+    time?: string;
+    speaker: string;
+    action: string;
+    line: string;
+    visual_start?: string;
+    visual_end?: string;
+    video?: string;
+    video_generated?: boolean;
+    audio?: string;
+    audio_generated?: boolean;
+    generated_start_image?: string | null;
+    is_start_svg?: boolean;
+    start_failed?: boolean;
+    generated_end_image?: string | null;
+    is_end_svg?: boolean;
+    end_failed?: boolean;
+    imageUrl?: string;
+    loading?: boolean;
+    status?: string;
+    progress?: number;
+    video_failed?: boolean;
+    videoError?: string;
+    video_type?: string;
+    error?: string;
+}
 
 interface TimelineEditorProps {
-    clips: any[];
+    clips: Clip[];
     onRegenerate: (index: number) => void;
     onRegenerateVideo: (index: number) => void;
     onGenerateNext: (index: number) => void;
@@ -122,10 +150,12 @@ export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo,
                                     ) : clip.video_failed ? (
                                         <div className="relative w-full h-full">
                                             {clip.generated_start_image && (
-                                                <img
+                                                <Image
                                                     src={clip.generated_start_image}
-                                                    className="w-full h-full object-cover opacity-40 grayscale"
+                                                    fill
+                                                    className="object-cover opacity-40 grayscale"
                                                     alt="Frozen start frame"
+                                                    sizes="400px"
                                                 />
                                             )}
                                             <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-black/60">
@@ -140,12 +170,18 @@ export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo,
                                             </div>
                                         </div>
                                     ) : clip.generated_start_image ? (
-                                        <img
-                                            src={clip.generated_start_image}
-                                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-500"
-                                            alt="Start Generated"
-                                            onClick={() => setZoomedImage(clip.generated_start_image)}
-                                        />
+                                        <div
+                                            className="w-full h-full cursor-pointer hover:scale-105 transition-transform duration-500 relative"
+                                            onClick={() => setZoomedImage(clip.generated_start_image || null)}
+                                        >
+                                            <Image
+                                                src={clip.generated_start_image}
+                                                fill
+                                                className="object-cover"
+                                                alt="Start Generated"
+                                                sizes="400px"
+                                            />
+                                        </div>
                                     ) : clip.start_failed ? (
                                         <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gray-950">
                                             <span className="text-2xl mb-2">⚠️</span>
@@ -182,7 +218,7 @@ export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo,
                                     <span className="text-gray-400 italic">{clip.action}</span>
                                 </div>
                                 <div className="bg-[var(--primary)]/10 p-2 rounded text-sm border border-[var(--primary)]/20">
-                                    <span className="text-white font-medium">"{clip.line}"</span>
+                                    <span className="text-white font-medium">&quot;{clip.line}&quot;</span>
                                     {clip.audio && (
                                         <div className="mt-2 pt-2 border-t border-[var(--primary)]/20 flex flex-col gap-2">
                                             <audio
@@ -226,12 +262,16 @@ export default function TimelineEditor({ clips, onRegenerate, onRegenerateVideo,
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-8"
                     onClick={() => setZoomedImage(null)}
                 >
-                    <div className="relative max-w-full max-h-full">
-                        <img
-                            src={zoomedImage}
-                            className="max-w-full max-h-full rounded-lg shadow-2xl border border-[var(--glass-border)]"
-                            alt="Zoomed"
-                        />
+                    <div className="relative w-full h-full flex flex-col items-center justify-center">
+                        <div className="relative w-[90vw] h-[80vh]">
+                            <Image
+                                src={zoomedImage}
+                                fill
+                                className="object-contain rounded-lg shadow-2xl border border-[var(--glass-border)]"
+                                alt="Zoomed"
+                                sizes="100vw"
+                            />
+                        </div>
                         <p className="text-center text-gray-400 mt-4 text-sm">Click anywhere to close</p>
                     </div>
                 </div>

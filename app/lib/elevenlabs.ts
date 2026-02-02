@@ -3,7 +3,7 @@ const BASE_URL = "https://api.elevenlabs.io/v1";
 
 export async function generateSpeech(text: string, voiceId: string) {
     if (!ELEVENLABS_API_KEY) {
-        console.warn("Missing ELEVENLABS_API_KEY");
+        console.error("CRITICAL: ELEVENLABS_API_KEY is missing in your .env.local file. Voice generation will not work.");
         return null;
     }
 

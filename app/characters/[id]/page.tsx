@@ -17,6 +17,7 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
         isCamera?: boolean;
         parameters?: any;
         visualConfig?: any;
+        referenceImages?: string[];
     }>({
         name: '',
         role: '',
@@ -332,6 +333,36 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
                         </div>
                     </div>
                 </div>
+
+                {/* Reference Gallery Section */}
+                <div className="lg:col-span-3">
+                    <div className="glass-panel p-8 border-t-4 border-purple-500">
+                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <span>📚</span> Reference Gallery
+                        </h3>
+                        <p className="text-gray-400 text-sm mb-4">
+                            These images are automatically used to improve consistency. (Generated from LoRA training data).
+                        </p>
+
+                        {!formData.referenceImages || formData.referenceImages.length === 0 ? (
+                            <div className="p-8 text-center text-gray-500 bg-black/20 rounded-lg">
+                                No reference images found. Run the "transfer-reference-images.js" script to import them.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
+                                {formData.referenceImages.map((img, idx) => (
+                                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden group border border-gray-800 hover:border-purple-500 transition-colors">
+                                        <img src={img} alt={`Ref ${idx}`} className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                            <span className="text-xs font-mono">{idx + 1}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
             </div>
         </div>
     );

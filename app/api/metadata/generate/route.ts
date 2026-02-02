@@ -6,7 +6,7 @@ export async function POST(request: Request) {
         const { topic } = await request.json();
         const metadata = await generateMetadata(topic);
         return NextResponse.json(metadata);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed' }, { status: 500 });
     }
 }

@@ -1,19 +1,32 @@
+import fs from 'fs';
+import path from 'path';
 
-const POD_ID = process.env.NEXT_PUBLIC_RUNPOD_POD_ID || process.env.RUNPOD_POD_ID || 'g4oysjh535la54';
-const BASE_URL = `https://${POD_ID}-8188.proxy.runpod.net`;
+const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY;
+const POD_ID = process.env.RUNPOD_POD_ID || process.env.NEXT_PUBLIC_RUNPOD_POD_ID;
 
-export interface RunpodVideoResult {
+interface RunpodResult {
     success: boolean;
     videoUrl?: string;
+    imageUrl?: string;
     error?: string;
-    status?: 'pending' | 'processing' | 'completed' | 'failed';
 }
 
-/**
- * Helper to prepare the HunyuanVideo workflow
- */
-function prepareWorkflow(prompt: string, frames: number, startImageFilename?: string) {
-    const workflow: any = {
+// Helper to get pod proxy URL
+const getPodUrl = (port: number = 8188) => `https://${POD_ID}-${port}.proxy.runpod.net`;
+
+function prepareWorkflow(prompt: string, frames: number, startImageFilename?: string, config?: Record<string, any>) {
+    // ELITE BODY ENFORCEMENT ENGINE (Same as Image)
+    const globalBodyMaster = "(chubby:1.6), (soft body:1.4), (extremely large breasts:1.8), (massive bust:1.8), (huge hanging breasts:1.5), (wide hips:1.6), (thick thighs:1.7), (hourglass figure:1.7), (voluptuous:1.6), (obese:0.3), ";
+    const bodyInjection = config?.characterTraits ? `[Character Physique: (${config.characterTraits}:1.9)], ` : "";
+
+    // NAKED / EXPLICIT Handling
+    const isExplicit = prompt.toLowerCase().includes("naked") || prompt.toLowerCase().includes("fuck") || prompt.toLowerCase().includes("cock") || prompt.toLowerCase().includes("cum");
+    const stylePrefix = isExplicit ? "(highly explicit:1.5), (uncensored:1.5), (naked:1.4), (nude:1.4), " : "";
+
+    const finalPosPrompt = `${stylePrefix}${globalBodyMaster}${bodyInjection}${prompt}, high quality, highly detailed, masterpiece, 8k`;
+    const finalNegPrompt = "(noise:1.5), (grainy:1.5), (skinny:2.0), (thin:2.0), (slender:2.0), (slim:1.8), (flat chest:2.0), low quality, blurry, distorted, watermark, text";
+
+    const workflow: Record<string, any> = {
         "1": {
             "inputs": {
                 "model_name": "hunyuan_video_720_cfg_distill_fp8_e4m3fn.safetensors",
@@ -34,10 +47,7 @@ function prepareWorkflow(prompt: string, frames: number, startImageFilename?: st
             "class_type": "VAELoaderKJ"
         },
         "3": {
-            "inputs": {
-                "text": prompt,
-                "clip": ["4", 0]
-            },
+            "inputs": { "text": finalPosPrompt, "clip": ["4", 0] },
             "class_type": "CLIPTextEncode"
         },
         "4": {
@@ -49,34 +59,21 @@ function prepareWorkflow(prompt: string, frames: number, startImageFilename?: st
             "class_type": "DualCLIPLoader"
         },
         "5": {
-            "inputs": {
-                "width": 720,
-                "height": 1280,
-                "length": frames,
-                "batch_size": 1
-            },
+            "inputs": { "width": 720, "height": 1280, "length": frames, "batch_size": 1 },
             "class_type": "EmptyHunyuanLatentVideo"
+        },
+        "7": {
+            "inputs": { "text": finalNegPrompt, "clip": ["4", 0] },
+            "class_type": "CLIPTextEncode"
         }
     };
 
-    // If we have a start image, use Image-to-Video conditioning
     if (startImageFilename) {
-        workflow["11"] = {
-            "inputs": {
-                "image": startImageFilename
-            },
-            "class_type": "LoadImage"
-        };
+        workflow["11"] = { "inputs": { "image": startImageFilename }, "class_type": "LoadImage" };
         workflow["12"] = {
             "inputs": {
-                "positive": ["3", 0],
-                "vae": ["2", 0],
-                "width": 720,
-                "height": 1280,
-                "length": frames,
-                "batch_size": 1,
-                "guidance_type": "v2 (replace)",
-                "start_image": ["11", 0]
+                "positive": ["3", 0], "vae": ["2", 0], "width": 720, "height": 1280, "length": frames, "batch_size": 1,
+                "guidance_type": "v2 (replace)", "start_image": ["11", 0]
             },
             "class_type": "HunyuanImageToVideo"
         };
@@ -84,470 +81,293 @@ function prepareWorkflow(prompt: string, frames: number, startImageFilename?: st
 
     workflow["6"] = {
         "inputs": {
-            "seed": Math.floor(Math.random() * 1000000),
-            "steps": 15,
-            "cfg": 1.0,
-            "sampler_name": "euler",
-            "scheduler": "simple",
-            "denoise": 1.0,
-            "model": ["1", 0],
-            "positive": startImageFilename ? ["12", 0] : ["3", 0],
-            "negative": ["7", 0],
+            "seed": Math.floor(Math.random() * 1000000), "steps": 15, "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple",
+            "denoise": 1.0, "model": ["1", 0], "positive": startImageFilename ? ["12", 0] : ["3", 0], "negative": ["7", 0],
             "latent_image": startImageFilename ? ["12", 1] : ["5", 0]
         },
         "class_type": "KSampler"
     };
 
-    workflow["7"] = {
-        "inputs": {
-            "text": "low quality, blurry, distorted, watermark, text",
-            "clip": ["4", 0]
-        },
-        "class_type": "CLIPTextEncode"
-    };
+    workflow["8"] = { "inputs": { "samples": ["6", 0], "vae": ["2", 0] }, "class_type": "VAEDecode" };
 
-    workflow["8"] = {
-        "inputs": {
-            "samples": ["6", 0],
-            "vae": ["2", 0]
-        },
-        "class_type": "VAEDecode"
-    };
-
-    workflow["9"] = {
-        "inputs": {
-            "images": ["8", 0],
-            "fps": 24
-        },
-        "class_type": "CreateVideo"
-    };
-
-    workflow["10"] = {
-        "inputs": {
-            "video": ["9", 0],
-            "filename_prefix": "HunyuanVideo",
-            "format": "mp4",
-            "codec": "h264"
-        },
-        "class_type": "SaveVideo"
-    };
+    workflow["40"] = { "inputs": { "images": ["8", 0], "fps": 24 }, "class_type": "CreateVideo" };
+    workflow["50"] = { "inputs": { "video": ["40", 0], "filename_prefix": "StoryTeller_Elite", "format": "mp4", "codec": "h264" }, "class_type": "SaveVideo" };
 
     return workflow;
 }
 
-/**
- * Helper to prepare an Image generation workflow (using SDXL + IPAdapter for character consistency)
- */
-function prepareImageWorkflow(prompt: string, referenceImageBase64?: string, config?: any) {
+function prepareImageWorkflow(prompt: string, instantIDImage?: string, ipAdapterImages?: string[], config?: Record<string, any>) {
     const seed = config?.manualSeed ?? Math.floor(Math.random() * 1000000);
-
-    // Professional Dual-Adapter Setup: InstantID (structure) + IP-Adapter (texture/soul)
     const weight = config?.instantidWeight ?? 0.8;
-    const ipWeight = config?.ipWeight ?? 0.7;
-    const cfg = 1.5;
-    const endAt = config?.endAt ?? 0.8;
+    const ipWeight = config?.ipWeight ?? 0.75;
 
-    const actionPrompt = prompt ? `(photograph:1.5), (highly detailed:1.2), ${prompt}` : '';
+    const globalBodyMaster = "(chubby:1.6), (soft body:1.4), (extremely large breasts:1.8), (massive bust:1.8), (huge hanging breasts:1.5), (wide hips:1.6), (thick thighs:1.7), (hourglass figure:1.7), (voluptuous:1.6), (obese:0.3), ";
+    const bodyInjection = config?.characterTraits ? `[Character Physique: (${config.characterTraits}:1.9)], ` : "";
+
+    const isExplicit = prompt.toLowerCase().includes("naked") || prompt.toLowerCase().includes("fuck") || prompt.toLowerCase().includes("cock") || prompt.toLowerCase().includes("cum");
+    const stylePrefix = isExplicit ? "(highly explicit:1.5), (uncensored:1.5), (naked:1.4), (nude:1.4), " : "";
+
+    const actionPrompt = `${stylePrefix}((${prompt}:1.8)), ${globalBodyMaster}${bodyInjection}(photograph:1.5), (highly detailed:1.3), (authentic character likeness:1.4), (accurate facial features:1.4), masterpiece, 8k, dslr, (muted colors:1.1)`;
+
+    const globalNeg = "(noise:1.5), (grainy:1.5), (dithering:1.5), (compression artifacts:1.2), (skinny:2.0), (thin:2.0), (slender:2.0), (slim:1.8), (flat chest:2.0), (small breasts:2.0), (petite:1.5), (anorexic:1.5), (fitness model:1.4), (fit:1.3), (trash:1.5), (cluttered:1.5), (debris:1.5), (blur:1.5), (soft focus:1.5), (faded:1.3), ";
+    const styleBlock = ", raw photo, 8k uhd, cinematic lighting, masterpiece, (razor sharp:1.4), (hyper-detailed skin textures:1.4), (skin pores:1.2), (micro-detail:1.3), (ultra-realistic skin texture:1.3), (natural light:1.2), (sharp focus on eyes:1.4), subsurface scattering, highly detailed iris, f/1.8, 35mm";
 
     const posPrompt = config?.positivePrompt
-        ? `${actionPrompt}, ${config.positivePrompt}`
-        : `${actionPrompt}, raw photo, 8k uhd, cinematic lighting, masterpiece, ultra-realistic skin texture, centered composition`;
+        ? `${actionPrompt}, ${config.positivePrompt}, (detailed clothing:1.2)${styleBlock}`
+        : `${actionPrompt}${styleBlock}`;
 
-    const negPrompt = config?.negativePrompt ?? "anime, cartoon, graphic, (worst quality, low quality:1.4), deformed, blurry, artifacts, text, watermark, different person, wrong face";
-
-    const steps = 15;
+    const negPrompt = globalNeg + (config?.negativePrompt ?? "(worst quality, low quality:1.4), (bad anatomy:1.2), (deformed:1.2), blurry, artifacts, text, watermark, different person, wrong face, illustration, drawing, painting, cartoon, anime");
 
     const workflow: any = {
-        "1": {
-            "inputs": { "ckpt_name": "juggernautXL_v9RdPhoto2Lightning.safetensors" },
-            "class_type": "CheckpointLoaderSimple"
-        },
-        "2": {
-            "inputs": { "text": posPrompt, "clip": ["1", 1] },
-            "class_type": "CLIPTextEncode"
-        },
-        "3": {
-            "inputs": { "text": negPrompt, "clip": ["1", 1] },
-            "class_type": "CLIPTextEncode"
-        },
-        "4": {
-            "inputs": { "width": 832, "height": 1216, "batch_size": 1 },
-            "class_type": "EmptyLatentImage"
-        },
-        "5": {
-            "inputs": { "clip_name": "clip_vision_sdxl.safetensors" },
-            "class_type": "CLIPVisionLoader"
-        }
+        "1": { "inputs": { "ckpt_name": "RealVisXL_V4.0_Lightning.safetensors" }, "class_type": "CheckpointLoaderSimple" },
+        "2": { "inputs": { "text": posPrompt, "clip": ["1", 1] }, "class_type": "CLIPTextEncode" },
+        "3": { "inputs": { "text": negPrompt, "clip": ["1", 1] }, "class_type": "CLIPTextEncode" },
+        "4": { "inputs": { "width": 832, "height": 1216, "batch_size": 1 }, "class_type": "EmptyLatentImage" },
+        "5": { "inputs": { "clip_name": "clip_vision_sdxl.safetensors" }, "class_type": "CLIPVisionLoader" },
+        // STAGE 2 ACTION ISOLATOR: Forced Perspective & Movement
+        "30": { "inputs": { "text": `((${prompt}:2.0)), (leaning forward into camera lens:1.6), (huge breasts in foreground:1.5), extreme perspective, close-up, foreshortening, depth of field`, "clip": ["1", 1] }, "class_type": "CLIPTextEncode" },
+        "31": { "inputs": { "text": "(standing upright:1.8), (straight posture:1.6), (centered:1.4), skinny, slim, thin", "clip": ["1", 1] }, "class_type": "CLIPTextEncode" }
     };
 
-    if (referenceImageBase64) {
-        workflow["6"] = {
-            "inputs": { "image": referenceImageBase64 },
-            "class_type": "LoadImage"
-        };
-
-        // --- INSTANTID SETUP (Facial Structure) ---
-        workflow["7"] = {
-            "inputs": { "instantid_file": "instantid-ip-adapter.bin" },
-            "class_type": "InstantIDModelLoader"
-        };
-        workflow["8"] = {
-            "inputs": {
-                "provider": "CPU"
-            },
-            "class_type": "InstantIDFaceAnalysis"
-        };
+    if (instantIDImage) {
+        workflow["6"] = { "inputs": { "image": instantIDImage }, "class_type": "LoadImage" };
+        workflow["7"] = { "inputs": { "instantid_file": "instantid-ip-adapter.bin" }, "class_type": "InstantIDModelLoader" };
+        workflow["8"] = { "inputs": { "provider": "CPU" }, "class_type": "InstantIDFaceAnalysis" };
+        workflow["10"] = { "inputs": { "control_net_name": "instantid-controlnet-sdxl.safetensors" }, "class_type": "ControlNetLoader" };
         workflow["9"] = {
             "inputs": {
-                "instantid": ["7", 0],
-                "insightface": ["8", 0],
-                "control_net": ["10", 0],
-                "image": ["6", 0],
-                "model": ["1", 0],
-                "positive": ["2", 0],
-                "negative": ["3", 0],
-                "weight": weight,
-                "start_at": 0.0,
-                "end_at": endAt
+                "instantid": ["7", 0], "insightface": ["8", 0], "control_net": ["10", 0],
+                "image": ["6", 0], "model": ["1", 0], "positive": ["2", 0], "negative": ["3", 0],
+                "weight": weight, "start_at": 0.0, "end_at": 1.0
             },
             "class_type": "ApplyInstantID"
         };
-        workflow["10"] = {
-            "inputs": { "control_net_name": "instantid-controlnet-sdxl.safetensors" },
-            "class_type": "ControlNetLoader"
-        };
+    } else { workflow["9"] = { "inputs": {}, "class_type": "Identity" }; }
 
-        // --- IPADAPTER SETUP (Texture/Soul) ---
-        workflow["11"] = {
-            "inputs": { "ipadapter_file": "ip-adapter-plus-face_sdxl_vit-h.safetensors" },
-            "class_type": "IPAdapterModelLoader"
-        };
+    let ipAdapterInputNode: any = null;
+    if (ipAdapterImages && ipAdapterImages.length > 0) {
+        let lastBatchNodeId = -1;
+        ipAdapterImages.forEach((img, idx) => {
+            const nodeId = 100 + idx;
+            workflow[`${nodeId}`] = { "inputs": { "image": img }, "class_type": "LoadImage" };
+            if (idx === 0) { lastBatchNodeId = nodeId; }
+            else {
+                const batchId = 200 + idx;
+                workflow[`${batchId}`] = { "inputs": { "image1": [`${lastBatchNodeId}`, 0], "image2": [`${nodeId}`, 0] }, "class_type": "ImageBatch" };
+                lastBatchNodeId = batchId;
+            }
+        });
+        ipAdapterInputNode = [`${lastBatchNodeId}`, 0];
+    } else if (instantIDImage) { ipAdapterInputNode = ["6", 0]; }
+
+    let locationInputNode: any = null;
+    if (config?.locationImage) {
+        workflow["50"] = { "inputs": { "image": config.locationImage }, "class_type": "LoadImage" };
+        locationInputNode = ["50", 0];
+    }
+
+    workflow["11"] = { "inputs": { "ipadapter_file": "ip-adapter-plus-face_sdxl_vit-h.safetensors" }, "class_type": "IPAdapterModelLoader" };
+    const modelInput = instantIDImage ? ["9", 0] : ["1", 0];
+    let samplerModelInput = modelInput;
+
+    if (ipAdapterInputNode) {
         workflow["12"] = {
             "inputs": {
-                "model": ["9", 0],
-                "ipadapter": ["11", 0],
-                "clip_vision": ["5", 0],
-                "image": ["6", 0],
-                "weight": ipWeight,
-                "weight_type": "linear",
-                "combine_embeds": "concat",
-                "embeds_scaling": "V only",
-                "start_at": 0.0,
-                "end_at": 1.0
+                "model": samplerModelInput, "ipadapter": ["11", 0], "clip_vision": ["5", 0], "image": ipAdapterInputNode,
+                "weight": ipWeight, "weight_type": "linear", "combine_embeds": "concat", "embeds_scaling": "V only", "start_at": 0.0, "end_at": 0.9
             },
             "class_type": "IPAdapterAdvanced"
         };
-
-        // --- SAMPLING ---
-        workflow["13"] = {
-            "inputs": {
-                "seed": seed,
-                "steps": steps,
-                "cfg": cfg,
-                "sampler_name": "dpmpp_sde",
-                "scheduler": "karras",
-                "denoise": 1.0,
-                "model": ["12", 0],
-                "positive": ["9", 1],
-                "negative": ["9", 2],
-                "latent_image": ["4", 0]
-            },
-            "class_type": "KSampler"
-        };
-
-        // High-Res Refinement Pass
-        workflow["14"] = {
-            "inputs": { "scale_by": 1.25, "upscale_method": "bilinear", "samples": ["13", 0] },
-            "class_type": "LatentUpscaleBy"
-        };
-        workflow["15"] = {
-            "inputs": {
-                "seed": seed,
-                "steps": 8,
-                "cfg": cfg,
-                "sampler_name": "dpmpp_sde",
-                "scheduler": "karras",
-                "denoise": 0.45,
-                "model": ["12", 0],
-                "positive": ["9", 1],
-                "negative": ["9", 2],
-                "latent_image": ["14", 0]
-            },
-            "class_type": "KSampler"
-        };
-
-        workflow["20"] = {
-            "inputs": { "samples": ["15", 0], "vae": ["1", 2] },
-            "class_type": "VAEDecode"
-        };
-        workflow["21"] = {
-            "inputs": { "filename_prefix": "StoryTeller_InstantID", "images": ["20", 0] },
-            "class_type": "SaveImage"
-        };
-    } else {
-        // Text-only mode
-        workflow["9"] = {
-            "inputs": {
-                "seed": seed,
-                "steps": steps,
-                "cfg": cfg,
-                "sampler_name": "dpmpp_sde",
-                "scheduler": "karras",
-                "denoise": 1.0,
-                "model": ["1", 0],
-                "positive": ["2", 0],
-                "negative": ["3", 0],
-                "latent_image": ["4", 0]
-            },
-            "class_type": "KSampler"
-        };
-        workflow["20"] = {
-            "inputs": { "samples": ["9", 0], "vae": ["1", 2] },
-            "class_type": "VAEDecode"
-        };
-        workflow["21"] = {
-            "inputs": { "filename_prefix": "StoryTeller_TextOnly", "images": ["20", 0] },
-            "class_type": "SaveImage"
-        };
+        samplerModelInput = ["12", 0];
     }
+
+    if (locationInputNode) {
+        workflow["60"] = {
+            "inputs": {
+                "model": samplerModelInput, "ipadapter": ["11", 0], "clip_vision": ["5", 0], "image": locationInputNode,
+                "weight": config?.locationWeight ?? 0.65, "weight_type": "strong style transfer", "combine_embeds": "concat", "embeds_scaling": "V only", "start_at": 0.0, "end_at": 0.8
+            },
+            "class_type": "IPAdapterAdvanced"
+        };
+        samplerModelInput = ["60", 0];
+    }
+
+    // --- STAGE 1: ANATOMY & LIKENESS (Construction) ---
+    workflow["13"] = {
+        "inputs": {
+            "seed": seed, "steps": 8, "cfg": 1.5, "sampler_name": "dpmpp_sde", "scheduler": "karras", "denoise": 1.0,
+            "model": samplerModelInput, "positive": instantIDImage ? ["9", 1] : ["2", 0], "negative": instantIDImage ? ["9", 2] : ["3", 0], "latent_image": ["4", 0]
+        },
+        "class_type": "KSampler"
+    };
+
+    // --- STAGE 2: ACTION REFINEMENT (Pure Action Override) ---
+    workflow["14"] = {
+        "inputs": {
+            "seed": seed, "steps": 15, "cfg": 5.0, "sampler_name": "euler_ancestral", "scheduler": "karras", "denoise": 0.78,
+            "model": samplerModelInput, "positive": ["30", 0], "negative": ["31", 0], "latent_image": ["13", 0]
+        },
+        "class_type": "KSampler"
+    };
+
+    // --- STAGE 3: DETAILING (4K Upscale & Texture) ---
+    workflow["16"] = { "inputs": { "upscale_method": "bicubic", "scale_by": 2.0, "samples": ["14", 0] }, "class_type": "LatentUpscaleBy" };
+    workflow["15"] = {
+        "inputs": {
+            "seed": seed, "steps": 12, "cfg": 1.5, "sampler_name": "dpmpp_2m_sde_gpu", "scheduler": "karras", "denoise": 0.45,
+            "model": samplerModelInput, "positive": instantIDImage ? ["9", 1] : ["2", 0], "negative": instantIDImage ? ["9", 2] : ["3", 0], "latent_image": ["16", 0]
+        },
+        "class_type": "KSampler"
+    };
+
+    // --- STAGE 4: POLISHING (Noise Removal & Finish) ---
+    workflow["18"] = {
+        "inputs": {
+            "seed": seed, "steps": 10, "cfg": 1.2, "sampler_name": "euler_ancestral", "scheduler": "karras", "denoise": 0.18,
+            "model": samplerModelInput, "positive": instantIDImage ? ["9", 1] : ["2", 0], "negative": instantIDImage ? ["9", 2] : ["3", 0], "latent_image": ["15", 0]
+        },
+        "class_type": "KSampler"
+    };
+
+    workflow["20"] = { "inputs": { "samples": ["18", 0], "vae": ["1", 2] }, "class_type": "VAEDecode" };
+    workflow["21"] = { "inputs": { "filename_prefix": "StoryTeller_Elite", "images": ["20", 0] }, "class_type": "SaveImage" };
 
     return workflow;
 }
 
-/**
- * Helper to upload a base64 image to the ComfyUI pod
- */
-async function uploadImageToPod(base64Image: string): Promise<string> {
-    // Convert base64 to blob
-    const base64Data = base64Image.split(',')[1];
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+async function uploadImageToPod(imageSource: string): Promise<string> {
+    let blob: Blob;
+    let filename = `reference_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+    if (imageSource.startsWith('data:image')) {
+        const base64Data = imageSource.split(',')[1];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
+        const byteArray = new Uint8Array(byteNumbers);
+        blob = new Blob([byteArray], { type: 'image/png' });
+    } else {
+        let localPath = imageSource;
+        while (localPath.startsWith('/') || localPath.startsWith('\\')) { localPath = localPath.substring(1); }
+        const fullPath = path.join(process.cwd(), 'public', localPath);
+        if (fs.existsSync(fullPath)) {
+            const buffer = fs.readFileSync(fullPath);
+            blob = new Blob([buffer], { type: 'image/png' });
+        } else { throw new Error(`Local file not found: ${fullPath}`); }
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: 'image/png' });
 
-    // Upload to ComfyUI
     const formData = new FormData();
-    const filename = `reference_${Date.now()}.png`;
     formData.append('image', blob, filename);
-    formData.append('subfolder', 'references');
-    formData.append('type', 'input');
 
-    const response = await fetch(`${BASE_URL}/upload/image`, {
-        method: 'POST',
-        body: formData
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to upload image: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('[RunPod] Image uploaded:', data);
-    // Return the path in the format LoadImage expects: "subfolder/filename"
-    return data.subfolder ? `${data.subfolder}/${data.name}` : data.name;
+    const uploadUrl = `${getPodUrl()}/upload/image`;
+    const response = await fetch(uploadUrl, { method: 'POST', body: formData });
+    if (!response.ok) throw new Error(`Upload failed: ${response.statusText}`);
+    return filename;
 }
 
-/**
- * Compatibility Function for Frontend (page.tsx)
- * Starts a request and returns a requestId (ComfyUI Prompt ID)
- */
-/**
- * Compatibility Function for Frontend (page.tsx)
- * Starts a request and returns a requestId (ComfyUI Prompt ID)
- */
-export async function createVideoRequest(params: { prompt: string, duration: number, startImage?: string }) {
-    const promptText = params.prompt || "Cinematic video";
-    console.log(`[RunPod] Attempting to connect to: ${BASE_URL}`);
-    console.log(`[RunPod] Creating async request for: "${promptText.substring(0, 30)}..."`);
-
-    let uploadedFilename: string | undefined;
-    if (params.startImage) {
-        try {
-            uploadedFilename = await uploadImageToPod(params.startImage);
-            console.log(`[RunPod] Start image uploaded as: ${uploadedFilename}`);
-        } catch (e) {
-            console.error("[RunPod] Failed to upload start image, falling back to T2V:", e);
-        }
-    }
-
-    const requestedDuration = params.duration || 2;
-    const duration = Math.min(requestedDuration, 3); // Cap at 3s for speed parity
-    const frames = duration * 24;
-    console.log(`[RunPod] Duration: ${duration}s (${frames} frames)`);
-    const workflow = prepareWorkflow(promptText, frames, uploadedFilename);
+export async function generateRunpodImage(prompt: string, referenceImages?: string[], config?: Record<string, any>): Promise<{ imageUrl?: string, error?: string }> {
+    if (!POD_ID) return { error: "Missing RunPod POD_ID" };
 
     try {
-        const response = await fetch(`${BASE_URL}/prompt`, {
+        let instantIDFilename: string | undefined;
+        let ipAdapterFilenames: string[] = [];
+
+        if (referenceImages && referenceImages.length > 0) {
+            instantIDFilename = await uploadImageToPod(referenceImages[0]);
+            for (let i = 1; i < referenceImages.length; i++) {
+                const fn = await uploadImageToPod(referenceImages[i]);
+                ipAdapterFilenames.push(fn);
+            }
+        }
+
+        if (config?.locationImage) {
+            config.locationImage = await uploadImageToPod(config.locationImage);
+        }
+
+        const workflow = prepareImageWorkflow(prompt, instantIDFilename, ipAdapterFilenames, config);
+
+        const response = await fetch(`${getPodUrl()}/prompt`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: workflow })
         });
 
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error(`[RunPod] ComfyUI Error Response: ${response.status}`, errText);
-            throw new Error(`ComfyUI Error: ${response.status}`);
+        if (!response.ok) return { error: `ComfyUI Error: ${response.status}` };
+        const { prompt_id } = await response.json();
+
+        let attempts = 0;
+        while (attempts < 60) {
+            await new Promise(r => setTimeout(r, 2000));
+            const histRes = await fetch(`${getPodUrl()}/history/${prompt_id}`);
+            const history = await histRes.json();
+
+            if (history[prompt_id]) {
+                const outputs = history[prompt_id].outputs;
+                const saveNode = outputs["21"] || Object.values(outputs)[0];
+                if (saveNode && saveNode.images?.[0]) {
+                    const img = saveNode.images[0];
+                    return { imageUrl: `${getPodUrl()}/view?filename=${img.filename}&type=${img.type}` };
+                }
+                return { error: "No image in ComfyUI output" };
+            }
+            attempts++;
         }
 
-        const data = await response.json();
-        console.log(`[RunPod] Success! Prompt ID: ${data.prompt_id}`);
-        return data.prompt_id;
-    } catch (e) {
-        console.error(`[RunPod] Connection Failed to ${BASE_URL}:`, e);
-        throw e;
+        return { error: "Generation timed out on Pod" };
+    } catch (e: any) {
+        console.error("[RunPod] Image Error:", e);
+        return { error: e.message };
     }
 }
 
-/**
- * Compatibility Function for Frontend (page.tsx)
- * Polls for status and calls callback
- */
-export function subscribeToVideoRequest(requestId: string, onUpdate: (req: RunpodVideoResult) => void) {
-    let active = true;
+export async function generateRunpodVideo(prompt: string, frames: number, startImage?: string, config?: Record<string, any>): Promise<RunpodResult> {
+    if (!POD_ID) return { success: false, error: "Missing RunPod POD_ID" };
 
+    try {
+        let startImageFilename: string | undefined;
+        if (startImage) startImageFilename = await uploadImageToPod(startImage);
+
+        const workflow = prepareWorkflow(prompt, frames, startImageFilename, config);
+
+        const response = await fetch(`${getPodUrl()}/prompt`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: workflow })
+        });
+
+        if (!response.ok) return { success: false, error: `ComfyUI Error: ${response.status}` };
+        const { prompt_id } = await response.json();
+        return { success: true, videoUrl: prompt_id };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export function subscribeToVideoRequest(jobId: string, onUpdate: (result: RunpodResult & { status: string, progress?: number }) => void) {
     const poll = async () => {
-        if (!active) return;
         try {
-            const res = await fetch(`${BASE_URL}/history/${requestId}`);
-            if (res.ok) {
-                const history = await res.json();
-                if (history[requestId]) {
-                    const outputs = history[requestId].outputs;
-                    if (outputs && outputs["10"] && outputs["10"].images) {
-                        const filename = outputs["10"].images[0].filename;
-                        const videoUrl = `${BASE_URL}/view?filename=${filename}&type=output`;
-                        onUpdate({ success: true, status: 'completed', videoUrl });
-                        active = false;
-                        return;
-                    }
+            const response = await fetch(`${getPodUrl()}/history/${jobId}`);
+            if (!response.ok) throw new Error("History fetch failed");
+            const history = await response.json();
+
+            if (history[jobId]) {
+                const outputs = history[jobId].outputs;
+                const saveNode = outputs["50"] || Object.values(outputs).find((n: any) => n.gifs || n.images);
+                let videoFilename = "";
+
+                if (saveNode?.gifs?.[0]?.filename) videoFilename = saveNode.gifs[0].filename;
+                else if (saveNode?.images?.[0]?.filename) videoFilename = saveNode.images[0].filename;
+
+                if (videoFilename) {
+                    onUpdate({ success: true, status: 'completed', videoUrl: `${getPodUrl()}/view?filename=${videoFilename}&type=output` });
+                    return;
                 }
             }
-            // Keep polling
+
             onUpdate({ success: true, status: 'processing' });
             setTimeout(poll, 5000);
         } catch (e) {
-            console.error("[RunPod] Poll Error:", e);
             onUpdate({ success: false, status: 'failed', error: (e as Error).message });
-            active = false;
-        }
-    };
-
-    poll();
-    return () => { active = false; };
-}
-
-/**
- * Synchronous version for API routes
- */
-export async function generateRunpodVideo(prompt: string, durationInFrames: number = 49, startImage?: string): Promise<RunpodVideoResult> {
-    try {
-        const promptId = await createVideoRequest({
-            prompt,
-            duration: Math.floor(durationInFrames / 24),
-            startImage
-        });
-
-        return new Promise((resolve) => {
-            const unsubscribe = subscribeToVideoRequest(promptId, (res) => {
-                if (res.status === 'completed' || res.status === 'failed') {
-                    unsubscribe();
-                    resolve(res);
-                }
-            });
-        });
-    } catch (e) {
-        return { success: false, error: (e as Error).message };
-    }
-}
-
-/**
- * Starts an image request and returns a requestId
- */
-export async function createImageRequest(prompt: string, referenceImageBase64?: string, config?: any) {
-    let uploadedFilename: string | undefined;
-
-    // Upload reference image if provided
-    if (referenceImageBase64) {
-        try {
-            uploadedFilename = await uploadImageToPod(referenceImageBase64);
-        } catch (e) {
-            console.error("[RunPod] Failed to upload reference image:", e);
-            // Continue without reference image
-        }
-    }
-
-    const workflow = prepareImageWorkflow(prompt, uploadedFilename, config);
-    try {
-        const response = await fetch(`${BASE_URL}/prompt`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: workflow })
-        });
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`[RunPod] ComfyUI Image Error ${response.status}:`, errorText);
-            throw new Error(`ComfyUI Image Error: ${response.status}`);
-        }
-        const data = await response.json();
-        return data.prompt_id;
-    } catch (e) {
-        console.error("[RunPod] Image Request Failed:", e);
-        throw e;
-    }
-}
-
-/**
- * Polls for image completion
- */
-export function subscribeToImageRequest(requestId: string, onUpdate: (res: { success: boolean, imageUrl?: string, status: string, error?: string }) => void) {
-    let active = true;
-    const poll = async () => {
-        if (!active) return;
-        try {
-            const res = await fetch(`${BASE_URL}/history/${requestId}`);
-            if (res.ok) {
-                const history = await res.json();
-                if (history[requestId]) {
-                    const outputs = history[requestId].outputs;
-                    if (outputs && outputs["21"] && outputs["21"].images) {
-                        const filename = outputs["21"].images[0].filename;
-                        const imageUrl = `${BASE_URL}/view?filename=${filename}&type=output`;
-                        onUpdate({ success: true, status: 'completed', imageUrl });
-                        active = false;
-                        return;
-                    }
-                }
-            }
-            onUpdate({ success: true, status: 'processing' });
-            setTimeout(poll, 3000);
-        } catch (e) {
-            onUpdate({ success: false, status: 'failed', error: (e as Error).message });
-            active = false;
         }
     };
     poll();
-    return () => { active = false; };
-}
-
-/**
- * Synchronous version for Image API routes
- */
-export async function generateRunpodImage(prompt: string, referenceImageUrl?: string, config?: any): Promise<{ success: boolean, imageUrl?: string, error?: string }> {
-    try {
-        console.log(`[RunPod] Generating Image with Config:`, JSON.stringify(config || {}, null, 2));
-        const promptId = await createImageRequest(prompt, referenceImageUrl, config);
-        return new Promise((resolve) => {
-            const unsubscribe = subscribeToImageRequest(promptId, (res) => {
-                if (res.status === 'completed' || res.status === 'failed') {
-                    unsubscribe();
-                    resolve({ success: res.success, imageUrl: res.imageUrl, error: res.error });
-                }
-            });
-        });
-    } catch (e) {
-        return { success: false, error: (e as Error).message };
-    }
 }

@@ -2,13 +2,20 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+interface Location {
+    id: string;
+    name: string;
+    description: string;
+    image: string;
+}
+
 export async function GET() {
     try {
         const filePath = path.join(process.cwd(), 'data', 'locations.json');
 
         if (!fs.existsSync(filePath)) {
             // Seed if missing
-            const seedData = [
+            const seedData: Location[] = [
                 {
                     "id": "loc_living_room",
                     "name": "Ben's Living Room",
@@ -21,20 +28,20 @@ export async function GET() {
         }
 
         const jsonData = fs.readFileSync(filePath, 'utf8');
-        const locations = JSON.parse(jsonData);
+        const locations: Location[] = JSON.parse(jsonData);
 
         return NextResponse.json(locations);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "Failed to load locations" }, { status: 500 });
     }
 }
 
 export async function POST(request: Request) {
     try {
-        const newLocation = await request.json();
+        const newLocation: Location = await request.json();
         const filePath = path.join(process.cwd(), 'data', 'locations.json');
 
-        let locations = [];
+        let locations: Location[] = [];
         if (fs.existsSync(filePath)) {
             locations = JSON.parse(fs.readFileSync(filePath, 'utf8'));
         }
@@ -46,7 +53,7 @@ export async function POST(request: Request) {
         fs.writeFileSync(filePath, JSON.stringify(locations, null, 2));
 
         return NextResponse.json({ success: true, location: newLocation });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "Failed to save location" }, { status: 500 });
     }
 }

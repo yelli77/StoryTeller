@@ -1,14 +1,16 @@
 "use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Character {
     id: string;
     name: string;
     traits: string;
     image?: string;
-    visualConfig?: any;
-    parameters?: any;
+    visualConfig?: Record<string, any>;
+    parameters?: Record<string, any>;
+    referenceImages?: string[];
 }
 
 interface Location {
@@ -28,6 +30,12 @@ export default function StudioPage() {
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    // Technical Tuning States
+    const [instantidWeight, setInstantidWeight] = useState(0.7);
+    const [ipWeight, setIpWeight] = useState(0.65);
+    const [locationWeight, setLocationWeight] = useState(0.6);
+    const [steps, setSteps] = useState(15);
+
     useEffect(() => {
         // Load Characters
         fetch('/api/characters')
@@ -39,6 +47,17 @@ export default function StudioPage() {
             .then(res => res.json())
             .then(data => setLocations(data));
     }, []);
+
+    // Sync character params when selection changes
+    useEffect(() => {
+        const char = characters.find(c => c.id === selectedCharId);
+        if (char) {
+            if (char.parameters?.instantidWeight) setInstantidWeight(char.parameters.instantidWeight);
+            if (char.parameters?.ipWeight) setIpWeight(char.parameters.ipWeight);
+            if (char.parameters?.locationWeight) setLocationWeight(char.parameters.locationWeight);
+            if (char.parameters?.steps) setSteps(char.parameters.steps);
+        }
+    }, [selectedCharId, characters]);
 
     const selectedChar = characters.find(c => c.id === selectedCharId);
     const selectedLoc = locations.find(l => l.id === selectedLocId);
@@ -52,29 +71,42 @@ export default function StudioPage() {
         setStatus('Initializing...');
 
         try {
-            // Build the final prompt
-            let finalPrompt = customPrompt;
+            // Enhanced scene building logic
+            let finalPrompt = "";
 
-            // If location selected, append location context
-            if (selectedLoc) {
-                finalPrompt = `${finalPrompt}. Location: ${selectedLoc.name}, ${selectedLoc.description}`;
+            if (customPrompt && customPrompt.trim()) {
+                finalPrompt = customPrompt;
             }
+
+            if (selectedLoc) {
+                const locContext = `at a ${selectedLoc.name}, ${selectedLoc.description}`;
+                finalPrompt = finalPrompt
+                    ? `${finalPrompt}, ${locContext}`
+                    : `Full shot of character ${locContext}`;
+            }
+
+            // Ensure we have a prompt
+            if (!finalPrompt) finalPrompt = "raw photo, professional photography";
 
             console.log("[Studio] Final Prompt:", finalPrompt);
 
-            // Get character reference image if available
+            // Get character reference images (Main + Gallery)
             let referenceImages: string[] = [];
-            if (selectedChar?.image) {
-                setStatus('Loading Actor Profile...');
-                const response = await fetch(selectedChar.image);
-                const blob = await response.blob();
-                const reader = new FileReader();
-                const base64 = await new Promise<string>((resolve) => {
-                    reader.onloadend = () => resolve(reader.result as string);
-                    reader.readAsDataURL(blob);
-                });
-                referenceImages = [base64];
+
+            // 1. Add references from the gallery if they exist
+            if (selectedChar?.referenceImages && selectedChar.referenceImages.length > 0) {
+                referenceImages = [...selectedChar.referenceImages];
             }
+
+            // 2. Add/Prepend the main image as the primary InstantID reference
+            if (selectedChar?.image) {
+                // If it's already in the list, move it to front, otherwise add it
+                referenceImages = [selectedChar.image, ...referenceImages.filter(img => img !== selectedChar.image)];
+            }
+
+            // Convert local paths to base64 if needed (usually handled by backend if they are public paths, 
+            // but generateRunpodImage in runpod.ts supports local paths too).
+            // Actually, runpod.ts uploadImageToPod handles local public paths.
 
             const mergedConfig = selectedChar
                 ? { ...(selectedChar.visualConfig || {}), ...(charParams(selectedChar)) }
@@ -86,26 +118,38 @@ export default function StudioPage() {
                 body: JSON.stringify({
                     prompt: finalPrompt,
                     referenceImages,
-                    visualConfig: mergedConfig
+                    visualConfig: {
+                        ...(mergedConfig || {}),
+                        characterTraits: selectedChar?.traits,
+                        instantidWeight,
+                        ipWeight,
+                        locationWeight,
+                        steps
+                    },
+                    locationImage: selectedLoc?.image
                 })
             });
 
             const data = await res.json();
+            console.log("[Studio] Generation Result:", data);
             if (data.image) {
-                setResultImage(data.image);
+                const cacheBuster = `&t=${Date.now()}`;
+                setResultImage(data.image + cacheBuster);
+                setStatus('');
             } else {
-                setError(data.error || 'Failed to generate');
+                console.error("[Studio] No image in response:", data);
+                setError(data.error || 'The Alchemist returned no image. Check logs.');
             }
         } catch (err) {
+            console.error("[Studio] Generation Error:", err);
             setError((err as Error).message);
         } finally {
             setLoading(false);
-            setStatus('');
         }
     };
 
     // Helper for char params
-    const charParams = (c: any) => c.parameters || {};
+    const charParams = (c: Character) => c.parameters || {};
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 p-4">
@@ -131,8 +175,16 @@ export default function StudioPage() {
                                         onClick={() => setSelectedCharId(char.id === selectedCharId ? '' : char.id)}
                                         className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${selectedCharId === char.id ? 'border-[var(--primary)] ring-2 ring-[var(--primary-glow)] scale-95' : 'border-gray-800'}`}
                                     >
-                                        <img src={char.image} alt={char.name} className="w-full h-full object-cover" />
-                                        <div className="absolute inset-x-0 bottom-0 bg-black/60 p-1 text-[10px] text-center">{char.name}</div>
+                                        {char.image && (
+                                            <Image
+                                                src={char.image}
+                                                alt={char.name}
+                                                fill
+                                                className="object-cover"
+                                                sizes="(max-width: 768px) 33vw, 200px"
+                                            />
+                                        )}
+                                        <div className="absolute inset-x-0 bottom-0 bg-black/60 p-1 text-[10px] text-center z-10">{char.name}</div>
                                     </button>
                                 ))}
                             </div>
@@ -148,8 +200,16 @@ export default function StudioPage() {
                                         onClick={() => setSelectedLocId(loc.id === selectedLocId ? '' : loc.id)}
                                         className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${selectedLocId === loc.id ? 'border-[var(--secondary)] ring-2 ring-[var(--secondary-glow)] scale-95' : 'border-gray-800'}`}
                                     >
-                                        <img src={loc.image} alt={loc.name} className="w-full h-full object-cover" />
-                                        <div className="absolute inset-x-0 bottom-0 bg-black/60 p-1 text-[10px] text-center">{loc.name}</div>
+                                        {loc.image && (
+                                            <Image
+                                                src={loc.image}
+                                                alt={loc.name}
+                                                fill
+                                                className="object-cover"
+                                                sizes="(max-width: 768px) 33vw, 200px"
+                                            />
+                                        )}
+                                        <div className="absolute inset-x-0 bottom-0 bg-black/60 p-1 text-[10px] text-center z-10">{loc.name}</div>
                                     </button>
                                 ))}
                             </div>
@@ -163,6 +223,49 @@ export default function StudioPage() {
                                 placeholder="Describe exactly what happens... (e.g. smiling at camera, holding a cup of coffee)"
                                 value={customPrompt}
                                 onChange={e => setCustomPrompt(e.target.value)}
+                            />
+                        </div>
+
+                        {/* Technical Tuning */}
+                        <div className="space-y-4 pt-4 border-t border-gray-800">
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Character Likeness</label>
+                                <span className="text-[var(--primary)] text-xs font-mono bg-[var(--primary)]/10 px-2 py-0.5 rounded">{instantidWeight.toFixed(2)}</span>
+                            </div>
+                            <input
+                                type="range" min="0.1" max="1.0" step="0.05"
+                                value={instantidWeight} onChange={e => setInstantidWeight(parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[var(--primary)]"
+                            />
+
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Character Soul (IP-Adapter)</label>
+                                <span className="text-[var(--primary)] text-xs font-mono bg-[var(--primary)]/10 px-2 py-0.5 rounded">{ipWeight.toFixed(2)}</span>
+                            </div>
+                            <input
+                                type="range" min="0.1" max="1.0" step="0.05"
+                                value={ipWeight} onChange={e => setIpWeight(parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[var(--primary)]"
+                            />
+
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Environment Influence</label>
+                                <span className="text-[var(--secondary)] text-xs font-mono bg-[var(--secondary)]/10 px-2 py-0.5 rounded">{locationWeight.toFixed(2)}</span>
+                            </div>
+                            <input
+                                type="range" min="0.1" max="1.0" step="0.05"
+                                value={locationWeight} onChange={e => setLocationWeight(parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[var(--secondary)]"
+                            />
+
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Precision (Steps)</label>
+                                <span className="text-gray-400 text-xs font-mono bg-gray-800 px-2 py-0.5 rounded">{steps}</span>
+                            </div>
+                            <input
+                                type="range" min="4" max="25" step="1"
+                                value={steps} onChange={e => setSteps(parseInt(e.target.value))}
+                                className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-gray-500"
                             />
                         </div>
 
@@ -199,7 +302,7 @@ export default function StudioPage() {
                 <div className="flex flex-col gap-4">
                     <div className="glass-panel min-h-[600px] flex flex-col relative overflow-hidden bg-black/40 border-dashed border-2 border-gray-800">
                         {resultImage ? (
-                            <div className="absolute inset-0 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-800">
+                            <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-800 min-h-[600px] w-full">
                                 {/* Compare: Original */}
                                 <div className="flex-1 bg-black/40 flex flex-col relative">
                                     <div className="p-2 text-[10px] uppercase font-bold text-gray-400 bg-black/60 sticky top-0 z-10 flex justify-between">
@@ -208,13 +311,9 @@ export default function StudioPage() {
                                     </div>
                                     <div className="flex-1 relative m-4">
                                         <img
-                                            src={selectedChar?.image || '/placeholder.png'}
+                                            src={selectedChar?.image || 'https://placehold.co/400x400?text=Identity+Locked'}
                                             alt="Ref"
                                             className="w-full h-full object-contain opacity-90 mx-auto"
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement;
-                                                target.src = "https://placehold.co/400x400?text=Identity+Locked";
-                                            }}
                                         />
                                     </div>
                                 </div>
@@ -225,26 +324,30 @@ export default function StudioPage() {
                                         <span>Generated Shot</span>
                                     </div>
                                     <div className="flex-1 relative m-4">
-                                        <img src={resultImage} alt="Result" className="w-full h-full object-contain" />
+                                        <img
+                                            src={resultImage}
+                                            alt="Result"
+                                            className="w-full h-full object-contain"
+                                        />
                                     </div>
                                 </div>
                             </div>
                         ) : loading ? (
-                            <div className="text-center space-y-4">
+                            <div className="text-center space-y-4 m-auto">
                                 <div className="text-6xl animate-bounce">⚡</div>
                                 <p className="text-[var(--primary)] animate-pulse uppercase tracking-[0.2em] font-bold">Requesting Blackwell 5090...</p>
                             </div>
                         ) : error ? (
-                            <div className="text-center space-y-4 p-8">
+                            <div className="text-center space-y-4 p-8 m-auto">
                                 <div className="text-5xl">⚠️</div>
                                 <p className="text-red-500 font-mono text-sm">{error}</p>
                                 <button onClick={handleGenerate} className="text-[var(--primary)] underline font-bold">Retry</button>
                             </div>
                         ) : (
-                            <div className="text-center text-gray-700 space-y-2">
+                            <div className="text-center text-gray-700 space-y-2 m-auto">
                                 <div className="text-6xl mb-4 text-gray-800">🖼️</div>
                                 <p className="text-lg">Generated Frame will appear here.</p>
-                                <p className="text-sm">Select options and hit 'Take Shot'</p>
+                                <p className="text-sm">Select options and hit &apos;Take Shot&apos;</p>
                             </div>
                         )}
                     </div>
@@ -252,7 +355,40 @@ export default function StudioPage() {
                     {resultImage && (
                         <div className="flex gap-4">
                             <button className="flex-1 btn-secondary">Download HD</button>
-                            <button className="flex-1 btn-primary bg-indigo-600 hover:bg-indigo-500 border-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.4)]">🎞️ Animate (Video)</button>
+                            <button
+                                onClick={async () => {
+                                    setLoading(true);
+                                    setStatus('Animating character...');
+                                    try {
+                                        const res = await fetch('/api/video/generate', {
+                                            method: 'POST',
+                                            body: JSON.stringify({
+                                                prompt: customPrompt || "smiling and moving slightly",
+                                                startImage: resultImage,
+                                                duration: 2,
+                                                visualConfig: {
+                                                    characterTraits: selectedChar?.traits,
+                                                    instantidWeight,
+                                                    ipWeight
+                                                }
+                                            })
+                                        });
+                                        const data = await res.json();
+                                        if (data.video) {
+                                            window.location.href = `/player?jobId=${data.video}`;
+                                        } else {
+                                            setError(data.error || "Animation failed");
+                                        }
+                                    } catch (err) {
+                                        setError("Connection error");
+                                    } finally {
+                                        setLoading(false);
+                                    }
+                                }}
+                                className="flex-1 btn-primary bg-indigo-600 hover:bg-indigo-500 border-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.4)]"
+                            >
+                                🎞️ Animate (Video)
+                            </button>
                         </div>
                     )}
                 </div>

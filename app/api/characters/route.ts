@@ -4,8 +4,18 @@ import path from 'path';
 
 const dataFilePath = path.join(process.cwd(), 'data', 'characters.json');
 
+interface Character {
+    id: string;
+    name: string;
+    role?: string;
+    traits?: string;
+    voiceId?: string;
+    image?: string;
+    isCamera?: boolean;
+}
+
 // Helper to read data
-function getCharacters() {
+function getCharacters(): Character[] {
     if (!fs.existsSync(dataFilePath)) {
         return [];
     }
@@ -14,7 +24,7 @@ function getCharacters() {
 }
 
 // Helper to write data
-function saveCharacters(characters: any[]) {
+function saveCharacters(characters: Character[]) {
     fs.writeFileSync(dataFilePath, JSON.stringify(characters, null, 2));
 }
 
@@ -27,7 +37,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const characters = getCharacters();
 
-    const newCharacter = {
+    const newCharacter: Character = {
         id: Date.now().toString(),
         ...body,
     };
@@ -43,7 +53,7 @@ export async function PUT(request: Request) {
         const body = await request.json();
         const characters = getCharacters();
 
-        const index = characters.findIndex((c: any) => c.id === body.id);
+        const index = characters.findIndex((c: Character) => c.id === body.id);
         if (index === -1) {
             return NextResponse.json({ error: "Character not found" }, { status: 404 });
         }
@@ -52,7 +62,7 @@ export async function PUT(request: Request) {
         saveCharacters(characters);
 
         return NextResponse.json(characters[index]);
-    } catch (error) {
+    } catch (_error: unknown) {
         return NextResponse.json({ error: "Failed to update character" }, { status: 500 });
     }
 }

@@ -1,33 +1,45 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import * as fs from 'fs';
+import * as path from 'path';
 
 // This would typically come from an environment variable or settings context
 const API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
-export async function analyzeCharacterImage(imageUrl: string) {
+export async function analyzeBodyProportions(base64Images: string[]) {
     if (!API_KEY) {
-        console.warn("No Gemini API Key found. Returning mock analysis.");
-        return {
-            traits: "Mock: High cheekbones, expressive eyes, modern style.",
-            roleSuggest: "The Protagonist"
-        };
+        console.warn("No Gemini API Key found for Live Analysis.");
+        return null;
     }
 
     try {
         const genAI = new GoogleGenerativeAI(API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-        // In a real implementation, we'd fetch the image blob and convert to base64
-        // For now, we'll assume we pass a prompt based on the URL or handle the file directly in the calling component
-        // This is a simplified placeholder structure
+        const prompt = `
+        Analyze the body proportions of the character in these images. 
+        Focus ONLY on physical attributes like: build, waist-to-hip ratio, chest size, thigh thickness, and overall shape (e.g., hourglass, pear, athletic).
+        Write a concise, high-impact description in English that can be used as a prompt for an AI image generator.
+        Example: "curvy hourglass figure, wide hips, thick thighs, large bust, slim waist".
+        Do not include clothing or face details. Just the body proportions.
+        Return ONLY the description text.
+        `;
 
-        return {
-            traits: "Analysis from Gemini 2.5 Flash would appear here.",
-            roleSuggest: "Analyzed Role"
-        };
+        const imageParts = base64Images.map(base64 => {
+            const data = base64.split(',')[1] || base64;
+            return {
+                inlineData: {
+                    data,
+                    mimeType: "image/png"
+                }
+            };
+        });
+
+        const result = await model.generateContent([prompt, ...imageParts]);
+        return result.response.text().trim();
 
     } catch (error) {
-        console.error("Gemini Vision Error:", error);
-        throw error;
+        console.error("Gemini Live Analysis Error:", error);
+        return null;
     }
 }
 
@@ -46,7 +58,7 @@ export async function generateScript(topic: string, characters: any[], location:
     try {
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.0-flash", // Upgraded to 2.0 Flash
             generationConfig: { responseMimeType: "application/json" }
         });
 
@@ -132,7 +144,7 @@ export async function generateMetadata(topic: string) {
     try {
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.0-flash",
             generationConfig: { responseMimeType: "application/json" }
         });
 

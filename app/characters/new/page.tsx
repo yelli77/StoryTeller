@@ -2,10 +2,35 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+
+interface CharacterParams {
+    instantidWeight: number;
+    cfg: number;
+    endAt: number;
+    steps: number;
+    sampler: string;
+}
+
+interface VisualConfig {
+    positivePrompt: string;
+    negativePrompt: string;
+}
+
+interface CharacterFormData {
+    name: string;
+    role: string;
+    traits: string;
+    voiceId: string;
+    image: string;
+    isCamera: boolean;
+    parameters: CharacterParams;
+    visualConfig: VisualConfig;
+}
 
 export default function NewCharacterPage() {
     const router = useRouter();
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<CharacterFormData>({
         name: '',
         role: '',
         traits: '',
@@ -46,7 +71,7 @@ export default function NewCharacterPage() {
                 setFormData(prev => ({ ...prev, image: json.url }));
 
                 // Trigger "Consistency Check" / Auto-Describe
-                analyzeImage(json.url);
+                analyzeImage();
             }
         } catch (err) {
             console.error(err);
@@ -55,7 +80,7 @@ export default function NewCharacterPage() {
         }
     };
 
-    const analyzeImage = async (url: string) => {
+    const analyzeImage = async () => {
         setAnalyzing(true);
         // Simulate Gemini Vision processing delay
         setTimeout(() => {
@@ -78,14 +103,14 @@ export default function NewCharacterPage() {
         router.push('/characters');
     };
 
-    const updateParam = (key: string, val: any) => {
+    const updateParam = (key: keyof CharacterParams, val: string | number) => {
         setFormData(prev => ({
             ...prev,
             parameters: { ...prev.parameters, [key]: val }
         }));
     };
 
-    const updateVisual = (key: string, val: any) => {
+    const updateVisual = (key: keyof VisualConfig, val: string) => {
         setFormData(prev => ({
             ...prev,
             visualConfig: { ...prev.visualConfig, [key]: val }
@@ -109,8 +134,14 @@ export default function NewCharacterPage() {
                             <div className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--glass-border)] rounded-xl p-8 hover:border-[var(--primary)] transition-colors relative">
                                 {formData.image ? (
                                     <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-[var(--success)] shadow-[0_0_20px_var(--success)]">
-                                        <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                        <Image
+                                            src={formData.image}
+                                            alt="Preview"
+                                            fill
+                                            className="object-cover"
+                                            sizes="128px"
+                                        />
+                                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10">
                                             <span className="text-xs">Change</span>
                                         </div>
                                     </div>

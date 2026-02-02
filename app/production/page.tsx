@@ -1,23 +1,30 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import TimelineEditor from '../components/TimelineEditor';
+import TimelineEditor, { Clip } from '../components/TimelineEditor';
 
-// Mock script data if none found
-const MOCK_SCRIPT = [
-    { time: "0:00", speaker: "Clara", action: "looking confused", line: "Wait, is today Tuesday?" },
-    { time: "0:04", speaker: "Ben", action: "facepalm", line: "It's our anniversary, Clara." },
-    { time: "0:08", speaker: "Clara", action: "panicking", line: "I knew that! I was testing you!" },
-];
+interface Character {
+    id: string;
+    name: string;
+    role: string;
+    traits: string;
+    image?: string;
+    isCamera?: boolean;
+    voiceId?: string;
+    visualConfig?: Record<string, any>;
+    parameters?: Record<string, any>;
+}
 
 export default function ProductionPage() {
     const [steps, setSteps] = useState({ tts: false, video: false, edit: false });
     const [loading, setLoading] = useState(false);
-    const [clips, setClips] = useState<any[]>([]);
-    const [characters, setCharacters] = useState<any[]>([]);
-    const [globalScene, setGlobalScene] = useState(''); // New state for constant scene consistency
+
+    // Pattern: functional initializer for sessionStorage to avoid hydration mismatch and lint errors
+    const [clips, setClips] = useState<Clip[]>([]);
+    const [characters, setCharacters] = useState<Character[]>([]);
+    const [globalScene, setGlobalScene] = useState('');
 
     // Ref to track clips for async access
-    const clipsRef = useRef<any[]>([]);
+    const clipsRef = useRef<Clip[]>([]);
     // Track abort controllers for each clip
     const abortControllers = useRef<{ [key: number]: AbortController }>({});
 
@@ -25,14 +32,18 @@ export default function ProductionPage() {
         clipsRef.current = clips;
     }, [clips]);
 
-    // Load script from session storage on mount
+    // Load initial data
     useEffect(() => {
         const stored = sessionStorage.getItem('currentScript');
         if (stored) {
-            setClips(JSON.parse(stored));
+            try {
+                setClips(JSON.parse(stored));
+            } catch (e) {
+                console.error("Failed to parse stored script", e);
+            }
         }
 
-        // Fetch characters for image mapping
+        // Fetch characters
         fetch('/api/characters')
             .then(res => res.json())
             .then(data => setCharacters(data))
@@ -40,7 +51,7 @@ export default function ProductionPage() {
     }, []);
 
     // Helper to convert image URL to base64
-    const urlToBase64 = async (url: string) => {
+    const urlToBase64 = async (url: string): Promise<string | undefined> => {
         try {
             const response = await fetch(url);
             const blob = await response.blob();
@@ -96,25 +107,20 @@ export default function ProductionPage() {
             })
         );
 
-        return refs.filter(r => r !== null) as string[];
+        return refs.filter((r): r is string => r !== null);
     };
 
     // Helper to inject character traits and global scene into the prompt
     const enhancePrompt = (originalPrompt: string) => {
-        // Find mentioned characters
         const relevantChars = characters.filter(c => originalPrompt.toLowerCase().includes(c.name.toLowerCase()));
 
-        // Build character identity injection
         let characterContext = '';
         if (relevantChars.length > 0) {
             characterContext = relevantChars.map(c => `[Appearance of ${c.name}: ${c.traits}]`).join(" ");
         }
 
-        // Scene Context from global state
         const sceneContext = globalScene.trim() ? `Location: ${globalScene}.` : '';
 
-        // Final Cinematic Assembly: Scene -> Action -> Identity
-        // This hierarchy helps the AI prioritize the environment before the specific character traits
         return `${sceneContext} ${originalPrompt}. ${characterContext}. (Cinematic photorealistic style, 8k, raw photo, highly detailed:1.3)`.trim();
     };
 
@@ -122,11 +128,9 @@ export default function ProductionPage() {
     const generateNextClip = async (index: number) => {
         console.log(`[Client] Starting generation for clip ${index}`);
 
-        // Create and store abort controller
         const controller = new AbortController();
         abortControllers.current[index] = controller;
 
-        // Set loading state immediately
         setClips(prev => {
             const next = [...prev];
             if (next[index]) next[index] = { ...next[index], loading: true, status: 'Initializing...', progress: 5 };
@@ -134,7 +138,6 @@ export default function ProductionPage() {
         });
 
         try {
-            // Use ref for stable access to current state
             const clip = clipsRef.current[index];
             if (!clip) {
                 console.warn(`[Client] Clip ${index} not found in state, skipping.`);
@@ -153,7 +156,7 @@ export default function ProductionPage() {
                 });
 
                 try {
-                    startImage = await extractLastFrame(clipsRef.current[index - 1].video);
+                    startImage = await extractLastFrame(clipsRef.current[index - 1].video!);
                     setClips(prev => {
                         const next = [...prev];
                         next[index] = { ...next[index], generated_start_image: startImage };
@@ -173,18 +176,18 @@ export default function ProductionPage() {
                 });
 
                 const mentionedChars = characters.filter(c =>
-                    clip.visual_start.toLowerCase().includes(c.name.toLowerCase()) && !c.isCamera
+                    clip.visual_start?.toLowerCase().includes(c.name.toLowerCase()) && !c.isCamera
                 );
                 const char = mentionedChars[0];
                 const visualConfig = char ? { ...(char.visualConfig || {}), ...(char.parameters || {}) } : undefined;
 
-                const refs = await getReferencesForPrompt(clip.visual_start);
+                const refs = await getReferencesForPrompt(clip.visual_start || '');
 
                 const res = await fetch('/api/image/generate', {
                     method: 'POST',
                     signal: controller.signal,
                     body: JSON.stringify({
-                        prompt: enhancePrompt(clip.visual_start),
+                        prompt: enhancePrompt(clip.visual_start || ''),
                         referenceImages: refs,
                         visualConfig: visualConfig
                     })
@@ -192,10 +195,9 @@ export default function ProductionPage() {
                 const data = await res.json();
                 if (data.image) {
                     startImage = data.image;
-                    // INTERMEDIATE UPDATE: Show the frame immediately!
                     setClips(prev => {
                         const next = [...prev];
-                        next[index] = { ...next[index], generated_start_image: startImage, start_failed: false, status: 'Frame Anchored', progress: 50 };
+                        next[index] = { ...next[index], generated_start_image: startImage as string, start_failed: false, status: 'Frame Anchored', progress: 50 };
                         return next;
                     });
                 } else {
@@ -221,7 +223,6 @@ export default function ProductionPage() {
 
             console.log(`[Client] Requesting video generation for clip ${index}`);
 
-            // Wait for audio if we want to do lip-sync
             let audioUrl = clip.audio;
             if (!audioUrl && clip.line?.trim()) {
                 setClips(prev => {
@@ -229,7 +230,6 @@ export default function ProductionPage() {
                     next[index] = { ...next[index], status: 'Awaiting Voice Synth...', progress: 55 };
                     return next;
                 });
-                // Poll for audio up to 5 seconds
                 for (let j = 0; j < 10; j++) {
                     if (controller.signal.aborted) throw new Error("Aborted");
                     await new Promise(r => setTimeout(r, 500));
@@ -256,7 +256,7 @@ export default function ProductionPage() {
                         ? enhancePrompt(`Talking video of ${clip.speaker}. Only ${clip.speaker} is speaking, everyone else is silent. High quality, detailed facial expressions.`)
                         : enhancePrompt(`Cinematic shot of ${clip.visual_start}`),
                     startImage: startImage,
-                    duration: clip.duration || 2,
+                    duration: 2,
                     type: isLipSync ? 'lipsync' : 'standard',
                     audioUrl: isLipSync ? audioUrl : undefined,
                     speaker: clip.speaker
@@ -273,8 +273,8 @@ export default function ProductionPage() {
                 }
                 return next;
             });
-        } catch (e: any) {
-            if (e.name === 'AbortError') {
+        } catch (e: unknown) {
+            if (e instanceof Error && e.name === 'AbortError') {
                 console.log(`[Client] Clip ${index} generation cancelled.`);
                 setClips(prev => {
                     const next = [...prev];
@@ -285,7 +285,7 @@ export default function ProductionPage() {
                 console.error(`[Sequential Gen] Error for clip ${index}`, e);
                 setClips(prev => {
                     const next = [...prev];
-                    next[index] = { ...next[index], video_failed: true, videoError: (e as Error).message, status: 'Error occurred' };
+                    next[index] = { ...next[index], video_failed: true, videoError: e instanceof Error ? e.message : 'Unknown error', status: 'Error occurred' };
                     return next;
                 });
             }
@@ -308,17 +308,13 @@ export default function ProductionPage() {
 
     const startProduction = async () => {
         setLoading(true);
-
-        // Step 0: Start First Visual Scene INSTANTLY
         generateNextClip(0);
 
-        // Step A: Audio Synthesis (Sequential but non-blocking for visuals)
         for (let i = 0; i < clips.length; i++) {
             const clip = clips[i];
             const speakerChar = characters.find(c => c.name === clip.speaker);
             if (speakerChar && speakerChar.voiceId && clip.line?.trim()) {
                 try {
-                    // Small delay to avoid API hammering
                     if (i > 0) await new Promise(r => setTimeout(r, 200));
 
                     const res = await fetch('/api/audio/generate', {
@@ -343,7 +339,6 @@ export default function ProductionPage() {
         setLoading(false);
     };
 
-    // Regenerate a specific frame
     const regenerateImage = async (index: number) => {
         setClips(prev => {
             const next = [...prev];
@@ -354,16 +349,16 @@ export default function ProductionPage() {
         try {
             const clip = clips[index];
             const mentionedChars = characters.filter(c =>
-                clip.visual_start.toLowerCase().includes(c.name.toLowerCase()) && !c.isCamera
+                clip.visual_start?.toLowerCase().includes(c.name.toLowerCase()) && !c.isCamera
             );
             const char = mentionedChars[0];
             const visualConfig = char ? { ...(char.visualConfig || {}), ...(char.parameters || {}) } : undefined;
 
-            const refs = await getReferencesForPrompt(clip.visual_start);
+            const refs = await getReferencesForPrompt(clip.visual_start || '');
             const res = await fetch('/api/image/generate', {
                 method: 'POST',
                 body: JSON.stringify({
-                    prompt: enhancePrompt(clip.visual_start),
+                    prompt: enhancePrompt(clip.visual_start || ''),
                     referenceImages: refs,
                     visualConfig: visualConfig
                 })
@@ -373,9 +368,8 @@ export default function ProductionPage() {
             setClips(prev => {
                 const next = [...prev];
                 if (data.image) {
-                    next[index] = { ...next[index], generated_start_image: data.image, start_failed: false };
+                    next[index] = { ...next[index], generated_start_image: data.image as string, start_failed: false };
                 } else {
-                    console.error(`[Client] Regenerate Image Error:`, data.error);
                     next[index] = { ...next[index], start_failed: true, error: data.error };
                 }
                 return next;
@@ -396,14 +390,13 @@ export default function ProductionPage() {
         }
     };
 
-    // Regenerate a specific video
     const regenerateVideo = async (index: number) => {
         setClips(prev => {
             const next = [...prev];
             if (next[index]) {
                 next[index] = {
                     ...next[index],
-                    video: null,
+                    video: undefined,
                     video_generated: false,
                     video_failed: false
                 };
@@ -433,7 +426,6 @@ export default function ProductionPage() {
                 </button>
             </div>
 
-            {/* Global Scene Control */}
             <div className="glass-panel p-4 flex gap-4 items-center bg-blue-900/10 border-blue-500/30">
                 <div className="text-2xl">🌍</div>
                 <div className="flex-1">
@@ -450,14 +442,12 @@ export default function ProductionPage() {
                 </div>
             </div>
 
-            {/* Pipeline Status */}
             <div className="grid grid-cols-3 gap-4">
                 <StepCard title="Step A: Audio Synthesis" status={steps.tts} icon="🎙️" tool="ElevenLabs (Live)" />
                 <StepCard title="Step B: Act-One Bridge" status={steps.video} icon="🎭" tool="RunPod (Blackwell 5090)" />
                 <StepCard title="Step C: Auto-Editor" status={steps.edit} icon="✂️" tool="StoryTeller Engine" />
             </div>
 
-            {/* Main Workspace */}
             <div className="glass-panel p-6 flex-1 flex flex-col gap-4">
                 <h3 className="text-xl font-bold border-b border-[var(--glass-border)] pb-4">Master Timeline (9:16)</h3>
                 <TimelineEditor
@@ -481,7 +471,7 @@ export default function ProductionPage() {
     );
 }
 
-function StepCard({ title, status, icon, tool }: any) {
+function StepCard({ title, status, icon, tool }: { title: string, status: boolean, icon: string, tool: string }) {
     return (
         <div className={`glass-panel p-4 flex items-center gap-4 transition-all ${status ? 'border-[var(--success)]' : 'opacity-70'}`}>
             <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${status ? 'bg-[var(--success)] text-black' : 'bg-gray-800'}`}>

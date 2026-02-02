@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function NewLocationPage() {
     const router = useRouter();
@@ -31,9 +32,9 @@ export default function NewLocationPage() {
                 setGeneratedImage(json.image);
                 setIsSvg(json.isSvg);
             }
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error("Preview generation error", e);
-            alert("Failed to generate preview: " + e.message);
+            alert("Failed to generate preview: " + (e instanceof Error ? e.message : String(e)));
         } finally {
             setGenerating(false);
         }
@@ -111,17 +112,23 @@ export default function NewLocationPage() {
                             isSvg ? (
                                 <div className="w-full h-full bg-gray-900" dangerouslySetInnerHTML={{ __html: generatedImage }} />
                             ) : (
-                                <img src={generatedImage} alt="Preview" className="w-full h-full object-cover" />
+                                <Image
+                                    src={generatedImage}
+                                    alt="Preview"
+                                    fill
+                                    className="object-cover"
+                                    sizes="400px"
+                                />
                             )
                         ) : (
-                            <div className="text-center text-gray-600">
+                            <div className="text-center text-gray-600 m-auto">
                                 <span className="text-4xl block mb-2">📷</span>
                                 <p>Preview will appear here</p>
                             </div>
                         )}
 
                         {generating && (
-                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-20">
                                 <div className="animate-spin text-4xl text-[var(--primary)]">⚡</div>
                             </div>
                         )}

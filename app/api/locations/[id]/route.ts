@@ -4,8 +4,15 @@ import path from 'path';
 
 const dataFilePath = path.join(process.cwd(), 'data', 'locations.json');
 
+interface Location {
+    id: string;
+    name: string;
+    description: string;
+    image: string;
+}
+
 // Helper to read data
-function getLocations() {
+function getLocations(): Location[] {
     if (!fs.existsSync(dataFilePath)) {
         return [];
     }
@@ -14,14 +21,14 @@ function getLocations() {
 }
 
 // Helper to write data
-function saveLocations(locations: any[]) {
+function saveLocations(locations: Location[]) {
     fs.writeFileSync(dataFilePath, JSON.stringify(locations, null, 2));
 }
 
-export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
     const { id } = await context.params;
     const locations = getLocations();
-    const location = locations.find((l: any) => l.id === id);
+    const location = locations.find((l: Location) => l.id === id);
 
     if (!location) {
         return NextResponse.json({ error: 'Location not found' }, { status: 404 });
@@ -33,9 +40,9 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
     const { id } = await context.params;
     const body = await request.json();
-    let locations = getLocations();
+    const locations = getLocations();
 
-    const index = locations.findIndex((l: any) => l.id === id);
+    const index = locations.findIndex((l: Location) => l.id === id);
     if (index === -1) {
         return NextResponse.json({ error: 'Location not found' }, { status: 404 });
     }
@@ -47,11 +54,11 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     return NextResponse.json(locations[index]);
 }
 
-export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
     const { id } = await context.params;
-    let locations = getLocations();
+    const locations = getLocations();
 
-    const newLocations = locations.filter((l: any) => l.id !== id);
+    const newLocations = locations.filter((l: Location) => l.id !== id);
     if (newLocations.length === locations.length) {
         return NextResponse.json({ error: 'Location not found' }, { status: 404 });
     }

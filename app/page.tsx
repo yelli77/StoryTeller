@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function Home() {
   return (
     <div className="space-y-8">
@@ -29,9 +31,9 @@ export default function Home() {
       <div className="glass-panel p-8 mt-8">
         <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
         <div className="flex gap-4">
-          <a href="/story" className="btn-primary">New Script</a>
-          <a href="/studio" className="btn-primary bg-purple-600 hover:bg-purple-500 border-purple-400">Manual Studio</a>
-          <a href="/characters" className="btn-secondary">Add Character</a>
+          <Link href="/story" className="btn-primary">New Script</Link>
+          <Link href="/studio" className="btn-primary bg-purple-600 hover:bg-purple-500 border-purple-400">Manual Studio</Link>
+          <Link href="/characters" className="btn-secondary">Add Character</Link>
         </div>
       </div>
     </div>

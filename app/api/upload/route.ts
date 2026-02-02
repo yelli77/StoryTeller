@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         fs.writeFileSync(filePath, buffer);
 
         return NextResponse.json({ url: `/uploads/${fileName}` });
-    } catch (e) {
+    } catch (e: unknown) {
         console.error(e);
         return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
     }

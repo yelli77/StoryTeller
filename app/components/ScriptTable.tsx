@@ -1,4 +1,13 @@
-export default function ScriptTable({ script }: { script: any[] }) {
+export interface ScriptLine {
+    time: string;
+    speaker: string;
+    action: string;
+    line: string;
+    visual_start?: string;
+    visual_end?: string;
+}
+
+export default function ScriptTable({ script }: { script: ScriptLine[] }) {
     if (!script || script.length === 0) return null;
 
     return (
@@ -36,7 +45,7 @@ export default function ScriptTable({ script }: { script: any[] }) {
                                         </div>
                                     )}
                                 </td>
-                                <td className="p-4 font-medium text-white">"{row.line}"</td>
+                                <td className="p-4 font-medium text-white">&quot;{row.line}&quot;</td>
                             </tr>
                         ))}
                     </tbody>
