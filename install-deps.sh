@@ -22,8 +22,9 @@ else
 fi
 
 # Use the correct public repository for PuLID Flux
-if [ ! -d "ComfyUI-PuLID-Flux" ]; then
-    git clone https://github.com/balazik/ComfyUI-PuLID-Flux.git
+# We use the underscore name as some nodes (like EasyUse) look for 'ComfyUI_PulID'
+if [ ! -d "ComfyUI_PulID_Flux" ] && [ ! -d "ComfyUI-PuLID-Flux" ] && [ ! -d "ComfyUI_PulID" ]; then
+    git clone https://github.com/balazik/ComfyUI-PuLID-Flux.git ComfyUI_PulID_Flux
 else
     echo "✅ PuLID Flux already installed."
 fi
@@ -41,9 +42,10 @@ if [ ! -f "/workspace/ComfyUI/models/clip_vision/clip_vision_vit_h.safetensors" 
     wget -O /workspace/ComfyUI/models/clip_vision/clip_vision_vit_h.safetensors https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors
 fi
 
-# Alternative name for Eva-CLIP if the node expects it
-# Some versions of PuLID expect it here:
-# /workspace/ComfyUI/models/clip_vision/EVA02_CLIP_H_14_336_fp16.safetensors
+# Some versions/nodes expect this exact filename
+if [ ! -f "/workspace/ComfyUI/models/clip_vision/EVA02_CLIP_H_14_336_fp16.safetensors" ]; then
+    cp /workspace/ComfyUI/models/clip_vision/clip_vision_vit_h.safetensors /workspace/ComfyUI/models/clip_vision/EVA02_CLIP_H_14_336_fp16.safetensors
+fi
 
 # InsightFace Model
 if [ ! -f "/workspace/ComfyUI/models/insightface/inswapper_128.onnx" ]; then
