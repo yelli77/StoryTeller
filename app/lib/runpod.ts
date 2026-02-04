@@ -14,7 +14,7 @@ interface RunpodResult {
 // Helper to get pod proxy URL
 const getPodUrl = (port: number = 8188) => `https://${POD_ID}-${port}.proxy.runpod.net`;
 
-function prepareWorkflow(prompt: string, frames: number, startImageFilename?: string, config?: Record<string, any>) {
+function prepareWorkflow(prompt: string, frames: number, startImageFilename?: string | null, config?: Record<string, any>) {
     // ELITE BODY ENFORCEMENT ENGINE (Same as Image)
     const globalBodyMaster = "(chubby:1.6), (soft body:1.4), (extremely large breasts:1.8), (massive bust:1.8), (huge hanging breasts:1.5), (wide hips:1.6), (thick thighs:1.7), (hourglass figure:1.7), (voluptuous:1.6), (obese:0.3), ";
     const bodyInjection = config?.characterTraits ? `[Character Physique: (${config.characterTraits}:1.9)], ` : "";
@@ -299,7 +299,7 @@ function prepareImageWorkflow(prompt: string, instantIDImage?: string, ipAdapter
     return workflow;
 }
 
-async function uploadImageToPod(imageSource: string): Promise<string> {
+async function uploadImageToPod(imageSource: string): Promise<string | null> {
     let blob: Blob;
     let filename = `reference_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
     if (imageSource.startsWith('data:image')) {
@@ -316,7 +316,10 @@ async function uploadImageToPod(imageSource: string): Promise<string> {
         if (fs.existsSync(fullPath)) {
             const buffer = fs.readFileSync(fullPath);
             blob = new Blob([buffer], { type: 'image/png' });
-        } else { throw new Error(`Local file not found: ${fullPath}`); }
+        } else {
+            console.warn(`[RunPod] Local file not found: ${fullPath}`);
+            return null;
+        }
     }
 
     const formData = new FormData();
@@ -336,10 +339,15 @@ export async function generateRunpodImage(prompt: string, referenceImages?: stri
         let ipAdapterFilenames: string[] = [];
 
         if (referenceImages && referenceImages.length > 0) {
-            instantIDFilename = await uploadImageToPod(referenceImages[0]);
-            for (let i = 1; i < referenceImages.length; i++) {
-                const fn = await uploadImageToPod(referenceImages[i]);
-                ipAdapterFilenames.push(fn);
+            const firstValid = await uploadImageToPod(referenceImages[0]);
+            if (firstValid) {
+                instantIDFilename = firstValid;
+                for (let i = 1; i < referenceImages.length; i++) {
+                    const fn = await uploadImageToPod(referenceImages[i]);
+                    if (fn) ipAdapterFilenames.push(fn);
+                }
+            } else {
+                console.warn("[RunPod] primary reference image not found, continuing without InstantID");
             }
         }
 
@@ -391,8 +399,12 @@ export async function generateRunpodVideo(prompt: string, frames: number, startI
     if (!POD_ID) return { success: false, error: "Missing RunPod POD_ID" };
 
     try {
-        let startImageFilename: string | undefined;
+        let startImageFilename: string | null | undefined;
         if (startImage) startImageFilename = await uploadImageToPod(startImage);
+
+        if (startImage && !startImageFilename) {
+            console.warn("[RunPod] Video start image not found, continuing without it");
+        }
 
         const workflow = prepareWorkflow(prompt, frames, startImageFilename, config);
 
