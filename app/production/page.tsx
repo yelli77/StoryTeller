@@ -110,18 +110,11 @@ export default function ProductionPage() {
         return refs.filter((r): r is string => r !== null);
     };
 
-    // Helper to inject character traits and global scene into the prompt
+    // Helper to inject global scene into the prompt
+    // Style and Traits are now handled by the backend (runpod.ts) for consistency
     const enhancePrompt = (originalPrompt: string) => {
-        const relevantChars = characters.filter(c => originalPrompt.toLowerCase().includes(c.name.toLowerCase()));
-
-        let characterContext = '';
-        if (relevantChars.length > 0) {
-            characterContext = relevantChars.map(c => `[Appearance of ${c.name}: ${c.traits}]`).join(" ");
-        }
-
-        const sceneContext = globalScene.trim() ? `Location: ${globalScene}.` : '';
-
-        return `${sceneContext} ${originalPrompt}. ${characterContext}. (Cinematic photorealistic style, 8k, raw photo, highly detailed:1.3)`.trim();
+        const sceneContext = globalScene.trim() ? `at a ${globalScene}, ` : '';
+        return `${sceneContext}${originalPrompt}`.trim();
     };
 
     // Sequential Generator for a specific clip
@@ -179,7 +172,11 @@ export default function ProductionPage() {
                     clip.visual_start?.toLowerCase().includes(c.name.toLowerCase()) && !c.isCamera
                 );
                 const char = mentionedChars[0];
-                const visualConfig = char ? { ...(char.visualConfig || {}), ...(char.parameters || {}) } : undefined;
+                const visualConfig = char ? {
+                    ...(char.visualConfig || {}),
+                    ...(char.parameters || {}),
+                    characterTraits: char.traits
+                } : undefined;
 
                 const refs = await getReferencesForPrompt(clip.visual_start || '');
 
@@ -352,7 +349,11 @@ export default function ProductionPage() {
                 clip.visual_start?.toLowerCase().includes(c.name.toLowerCase()) && !c.isCamera
             );
             const char = mentionedChars[0];
-            const visualConfig = char ? { ...(char.visualConfig || {}), ...(char.parameters || {}) } : undefined;
+            const visualConfig = char ? {
+                ...(char.visualConfig || {}),
+                ...(char.parameters || {}),
+                characterTraits: char.traits
+            } : undefined;
 
             const refs = await getReferencesForPrompt(clip.visual_start || '');
             const res = await fetch('/api/image/generate', {

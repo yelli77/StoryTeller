@@ -6,7 +6,8 @@ import Image from 'next/image';
 
 interface CharacterParams {
     instantidWeight: number;
-    cfg: number;
+    guidance: number;
+    pulidWeight: number;
     endAt: number;
     steps: number;
     sampler: string;
@@ -39,10 +40,11 @@ export default function NewCharacterPage() {
         isCamera: false,
         parameters: {
             instantidWeight: 0.8,
-            cfg: 1.2,
+            guidance: 3.5,
+            pulidWeight: 1.0,
             endAt: 1.0,
-            steps: 15,
-            sampler: 'euler_ancestral'
+            steps: 25,
+            sampler: 'euler'
         },
         visualConfig: {
             positivePrompt: '',
@@ -277,14 +279,27 @@ export default function NewCharacterPage() {
 
                             <div className="space-y-2">
                                 <div className="flex justify-between">
-                                    <label className="text-xs text-gray-400 font-bold uppercase">CFG Scale</label>
-                                    <span className="text-[var(--secondary)] font-mono">{formData.parameters?.cfg || 1.2}</span>
+                                    <label className="text-xs text-gray-400 font-bold uppercase">Flux Guidance</label>
+                                    <span className="text-[var(--secondary)] font-mono">{formData.parameters?.guidance || 3.5}</span>
                                 </div>
                                 <input
-                                    type="range" min="1" max="15" step="0.1"
+                                    type="range" min="1" max="10" step="0.1"
                                     className="w-full accent-[var(--secondary)]"
-                                    value={formData.parameters?.cfg || 1.2}
-                                    onChange={e => updateParam('cfg', parseFloat(e.target.value))}
+                                    value={formData.parameters?.guidance || 3.5}
+                                    onChange={e => updateParam('guidance', parseFloat(e.target.value))}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex justify-between">
+                                    <label className="text-xs text-gray-400 font-bold uppercase">Native PuLID Weight</label>
+                                    <span className="text-[var(--primary)] font-mono">{formData.parameters?.pulidWeight || 1.0}</span>
+                                </div>
+                                <input
+                                    type="range" min="0" max="1.5" step="0.05"
+                                    className="w-full accent-[var(--primary)]"
+                                    value={formData.parameters?.pulidWeight || 1.0}
+                                    onChange={e => updateParam('pulidWeight', parseFloat(e.target.value))}
                                 />
                             </div>
 
@@ -316,9 +331,10 @@ export default function NewCharacterPage() {
                                         <label className="text-[10px] text-gray-500 font-bold uppercase">Sampler</label>
                                         <select
                                             className="w-full bg-black/50 border border-gray-800 rounded p-2 text-xs text-white"
-                                            value={formData.parameters?.sampler || 'euler_ancestral'}
+                                            value={formData.parameters?.sampler || 'euler'}
                                             onChange={e => updateParam('sampler', e.target.value)}
                                         >
+                                            <option value="euler">Euler</option>
                                             <option value="euler_ancestral">Euler A</option>
                                             <option value="dpmpp_2m">DPM++ 2M</option>
                                             <option value="heun">Heun</option>
