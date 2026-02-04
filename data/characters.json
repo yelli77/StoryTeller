@@ -8,7 +8,7 @@
     "image": "/uploads/1769946501745-image_(1).jpg",
     "isCamera": false,
     "visualConfig": {
-      "positivePrompt": "clara_character, young woman",
+      "positivePrompt": "clara_character, young woman, long honey-brown hair, wearing glasses, soft pretty facial features",
       "negativePrompt": "(green clothing:1.5), (blue clothing:1.5), (teal:1.5), (turquoise:1.5), (naked:2.0), (nude:2.0), (generated sunglasses:1.5), (tinted glasses:1.4), (unclothed:2.0), (exposed breasts:2.0), (cleavage:1.5), (lingerie:1.8)"
     },
     "parameters": {

@@ -234,6 +234,15 @@ function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: strin
         };
     }
 
+    // Use Flux Guidance node for better adherence (as in the successful test script)
+    workflow["34"] = {
+        "inputs": {
+            "guidance": guidance,
+            "conditioning": ["14", 0]
+        },
+        "class_type": "FluxGuidance"
+    };
+
     // KSampler (always at the end to catch model changes)
     workflow["15"] = {
         "inputs": {
@@ -244,7 +253,7 @@ function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: strin
             "scheduler": "simple",
             "denoise": 1.0,
             "model": finalModel,
-            "positive": ["14", 0],
+            "positive": ["34", 0],
             "negative": ["18", 0],
             "latent_image": ["13", 0]
         },
