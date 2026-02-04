@@ -51,12 +51,17 @@
     "id": "1769595416520",
     "name": "Emily",
     "role": "The Chill Best Friend",
-    "traits": "Emily ist der Gegenpol zu den Konflikten. Sie trägt meistens ein enges pinkes Oberteil.",
+    "traits": "young woman, dark hair, pink sleeveless top, (highly detailed face:1.3), very large heavy breasts, slender fit body, athletic build, round toned glutes",
     "voiceId": "piTKgcLEGmPE4e6mEKli",
     "image": "/uploads/1770048788120-image_(2).jpg",
     "visualConfig": {
-      "positivePrompt": "emily_character, young woman, dark hair, pink sleeveless top, (highly detailed face:1.3), very large heavy breasts, slender fit body, athletic build, round toned glutes",
+      "positivePrompt": "emily_character",
       "negativePrompt": "(naked:2.0), (nude:2.0), (unclothed:2.0), (nsfw:2.0), (exposed breasts:2.0), (cleavage:1.5), (long sleeves:1.6)"
+    },
+    "parameters": {
+      "steps": 25,
+      "guidance": 3.5,
+      "pulidWeight": 0.85
     },
     "referenceImages": [
       "/characters/emily/ref/ref_1.png",
@@ -80,12 +85,17 @@
     "id": "1769595634590",
     "name": "Mia",
     "role": "Die Drama-Queen / Die Komplizierte",
-    "traits": "Mia trägt oft ein elegantes aber enges Oberteil in Pink oder Violett.",
+    "traits": "young woman, dark hair, (highly detailed face:1.3), pink v-neck top, dramatic expression, slender build",
     "voiceId": "MF3mGyEYCl7XYWbV9V6O",
     "image": "/uploads/1770048915028-image_(3).jpg",
     "visualConfig": {
-      "positivePrompt": "mia_character, young woman, dark hair, (highly detailed face:1.3), pink v-neck top, dramatic expression, slender build",
+      "positivePrompt": "mia_character",
       "negativePrompt": "(naked:2.0), (nude:2.0), (unclothed:2.0), (nsfw:20), (exposed breasts:2.0), (long sleeves:1.6)"
+    },
+    "parameters": {
+      "steps": 20,
+      "guidance": 3.5,
+      "pulidWeight": 0.8
     },
     "referenceImages": [
       "/characters/mia/ref/ref_1.png",
