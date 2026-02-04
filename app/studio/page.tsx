@@ -316,10 +316,11 @@ export default function StudioPage() {
                     {/* Preview of Final Prompt (Transparency) */}
                     <div className="bg-black/40 border border-gray-800 p-4 rounded-xl text-xs space-y-2">
                         <p className="text-gray-500 font-bold">SYSTEM PROMPT (SENT TO ENGINE):</p>
-                        <p className="text-gray-400 font-mono">
-                            {customPrompt || '[Action]'}
-                            {selectedChar && ` . Char: ${selectedChar.name} (Seed: ${selectedChar.parameters?.manualSeed || 'Auto'})`}
-                            {selectedLoc && ` . Location: ${selectedLoc.name}`}
+                        <p className="text-gray-400 font-mono italic">
+                            (Quality Prefix...),
+                            {customPrompt || '[Action Prompt]'},
+                            {selectedChar && ` [Physique: ${selectedChar.traits}]`},
+                            {selectedLoc && ` at ${selectedLoc.name}`}
                         </p>
                     </div>
                 </div>
