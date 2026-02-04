@@ -3,6 +3,7 @@ import { generateImage, analyzeBodyProportions } from '@/app/lib/gemini';
 import { generateRunpodImage } from '@/app/lib/runpod';
 import fs from 'fs';
 import path from 'path';
+import { getBestReferenceForPrompt } from '@/app/lib/ref-switcher';
 
 export async function POST(request: Request) {
     try {
@@ -18,6 +19,24 @@ export async function POST(request: Request) {
         // Ensure visualConfig object exists
         const config = visualConfig || {};
         if (locationImage) config.locationImage = locationImage;
+
+        // SMART REFERENCE SWITCHING
+        // Attempt to deduce character name from existing references to scan gallery
+        if (referenceImages && referenceImages.length > 0) {
+            // Try to find /characters/[name]/ in the path
+            const firstRef = referenceImages[0];
+            const match = firstRef.match(/\/characters\/([^\/]+)\//);
+            if (match && match[1]) {
+                const charName = match[1];
+                const bestRef = getBestReferenceForPrompt(prompt, charName);
+
+                if (bestRef) {
+                    // Prepend the smart reference so it becomes the MASTER for PuLID
+                    referenceImages.unshift(bestRef);
+                    console.log(`[API] Smart Reference Active: Using ${bestRef}`);
+                }
+            }
+        }
 
         // LIVE VISUAL ANALYSIS: Generate body description from reference images
         if (referenceImages && referenceImages.length > 0) {

@@ -28,6 +28,7 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
         parameters: {},
         visualConfig: {}
     });
+    const [references, setReferences] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [analyzing, setAnalyzing] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -51,6 +52,38 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
                 router.push('/characters');
             });
     }, [id, router]);
+
+    // Fetch References
+    const fetchReferences = () => {
+        if (!formData.name) return;
+        // Use the name from formData or params. Assume name matches directory for now (simple version)
+        // Ideally we pass the normalized name or ID if stored. 
+        // For 'Clara', the name is 'Clara'.
+        fetch(`/api/references?character=${formData.name}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.images) setReferences(data.images);
+            });
+    };
+
+    // Trigger fetch when name loads
+    useEffect(() => {
+        if (formData.name) fetchReferences();
+    }, [formData.name]);
+
+    const deleteReference = async (url: string) => {
+        if (!confirm("Delete this reference image? This cannot be undone.")) return;
+
+        await fetch('/api/references', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                character: formData.name,
+                filename: url
+            })
+        });
+        fetchReferences(); // Reload
+    };
 
     // Handle Image Upload
     const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -350,9 +383,17 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
                 {/* Reference Gallery Section */}
                 <div className="lg:col-span-3">
                     <div className="glass-panel p-8 border-t-4 border-purple-500">
-                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <span>📚</span> Reference Gallery
-                        </h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                <span>📚</span> Reference Gallery ({references.length})
+                            </h3>
+                            <button
+                                onClick={fetchReferences}
+                                className="text-xs btn-ghost hover:text-white"
+                            >
+                                🔄 Refresh
+                            </button>
+                        </div>
                         <p className="text-gray-400 text-sm mb-4">
                             These images are automatically used to improve consistency. (Generated from LoRA training data).
                         </p>
@@ -363,14 +404,38 @@ export default function EditCharacterPage({ params }: { params: Promise<{ id: st
                             </div>
                         ) : (
                             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
-                                {formData.referenceImages.map((img, idx) => (
-                                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden group border border-gray-800 hover:border-purple-500 transition-colors">
-                                        <img src={img} alt={`Ref ${idx}`} className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                            <span className="text-xs font-mono">{idx + 1}</span>
-                                        </div>
+                                {references.length === 0 ? (
+                                    <div className="col-span-full p-8 text-center text-gray-500 bg-black/20 rounded-lg">
+                                        No generated references found. Run the dataset generator script to populate this gallery.
                                     </div>
-                                ))}
+                                ) : (
+                                    references.map((img, idx) => (
+                                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden group border border-gray-800 hover:border-purple-500 transition-colors">
+                                            <img src={img} alt={`Ref ${idx}`} className="w-full h-full object-cover" />
+                                            {/* Delete Overlay */}
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+                                                <button
+                                                    onClick={() => deleteReference(img)}
+                                                    className="p-2 bg-red-500/80 hover:bg-red-500 text-white rounded-full transition-colors"
+                                                    title="Delete Image"
+                                                >
+                                                    🗑️
+                                                </button>
+                                                <a
+                                                    href={img}
+                                                    target="_blank"
+                                                    className="p-2 bg-blue-500/80 hover:bg-blue-500 text-white rounded-full transition-colors"
+                                                    title="View Full Size"
+                                                >
+                                                    🔍
+                                                </a>
+                                            </div>
+                                            <div className="absolute bottom-1 right-1 bg-black/50 px-1 rounded text-[10px] font-mono text-gray-300">
+                                                {idx + 1}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         )}
                     </div>

@@ -11,7 +11,8 @@ const BASE_URL = `https://${POD_ID}-8188.proxy.runpod.net`;
 const SOURCE_IMAGE_FRONT = '1769946490115-image_(1).jpg';
 const SOURCE_IMAGE_SIDE = 'clara_ref_side.png';
 const SOURCE_IMAGE_BACK = 'clara_ref_back.jpg';
-const OUTPUT_DIR = path.join(__dirname, 'output', 'clara_refs');
+// Save directly to public folder so they are visible in the app
+const OUTPUT_DIR = path.join(__dirname, 'public', 'characters', 'clara', 'references');
 
 // Ensure output dir exists
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -171,6 +172,38 @@ function constructWorkflow(posePrompt, uploadedFront, uploadedSide, uploadedBack
     };
 }
 
+
+async function checkStatus(promptId) {
+    while (true) {
+        try {
+            const res = await fetch(`${BASE_URL}/history/${promptId}`);
+            const data = await res.json();
+            if (Object.keys(data).length > 0) {
+                return data[promptId]; // Job complete
+            }
+        } catch (e) {
+            console.log("   Waiting for history...");
+        }
+        await new Promise(r => setTimeout(r, 2000));
+    }
+}
+
+async function downloadOutput(filename, outputName) {
+    try {
+        const res = await fetch(`${BASE_URL}/view?filename=${filename}&type=output`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const buffer = await res.arrayBuffer();
+        const outputPath = path.join(OUTPUT_DIR, outputName);
+        fs.writeFileSync(outputPath, Buffer.from(buffer));
+        console.log(`   ✅ Saved: ${outputName}`);
+        return true;
+    } catch (e) {
+        console.error(`   ❌ Download failed for ${outputName}:`, e.message);
+        return false;
+    }
+}
+
 async function queuePrompt(workflow) {
     try {
         const response = await fetch(`${BASE_URL}/prompt`, {
@@ -211,8 +244,29 @@ async function generateReferences() {
 
         if (promptId) {
             console.log(`   Job dispatched: ${promptId}`);
-            // Wait to ensure processing
-            await new Promise(r => setTimeout(r, 6000));
+            console.log(`   Job dispatched: ${promptId} - Waiting for generation...`);
+
+            // Poll for completion
+            const history = await checkStatus(promptId);
+            const outputs = history.outputs;
+
+            // Find the SaveImage node output (Node 17)
+            let imageFilename = null;
+            for (const key in outputs) {
+                if (outputs[key].images && outputs[key].images.length > 0) {
+                    imageFilename = outputs[key].images[0].filename;
+                }
+            }
+
+            if (imageFilename) {
+                const finalFilename = `${p.name}.png`; // Clean filename for gallery
+                await downloadOutput(imageFilename, finalFilename);
+            } else {
+                console.error("   ❌ No output image found in history.");
+            }
+
+            // Small cooldown
+            await new Promise(r => setTimeout(r, 1000));
         } else {
             console.log("   ❌ Job Failed to Dispatch");
         }
