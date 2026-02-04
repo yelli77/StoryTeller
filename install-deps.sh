@@ -21,10 +21,11 @@ else
     echo "✅ ComfyUI-Manager already installed."
 fi
 
-if [ ! -d "ComfyUI_PulID_Flux" ]; then
-    git clone https://github.com/balmung-git/ComfyUI_PulID_Flux.git
+# Use the correct public repository for PuLID Flux
+if [ ! -d "ComfyUI-PuLID-Flux" ]; then
+    git clone https://github.com/balazik/ComfyUI-PuLID-Flux.git
 else
-    echo "✅ ComfyUI_PulID_Flux already installed."
+    echo "✅ PuLID Flux already installed."
 fi
 
 # 3. Models
@@ -35,10 +36,14 @@ if [ ! -f "/workspace/ComfyUI/models/pulid/pulid_flux_v0.9.0.safetensors" ]; the
     wget -O /workspace/ComfyUI/models/pulid/pulid_flux_v0.9.0.safetensors https://huggingface.co/balmung77/Flux/resolve/main/pulid_flux_v0.9.0.safetensors
 fi
 
-# CLIP Vision Model (Vit-H)
+# CLIP Vision / Eva-CLIP (Vit-H is used by PuLID)
 if [ ! -f "/workspace/ComfyUI/models/clip_vision/clip_vision_vit_h.safetensors" ]; then
     wget -O /workspace/ComfyUI/models/clip_vision/clip_vision_vit_h.safetensors https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors
 fi
+
+# Alternative name for Eva-CLIP if the node expects it
+# Some versions of PuLID expect it here:
+# /workspace/ComfyUI/models/clip_vision/EVA02_CLIP_H_14_336_fp16.safetensors
 
 # InsightFace Model
 if [ ! -f "/workspace/ComfyUI/models/insightface/inswapper_128.onnx" ]; then
