@@ -22,12 +22,12 @@ else
 fi
 
 # Use the correct public repository for PuLID Flux
-# We use the underscore name as some nodes (like EasyUse) look for 'ComfyUI_PulID'
-if [ ! -d "ComfyUI_PulID_Flux" ] && [ ! -d "ComfyUI-PuLID-Flux" ] && [ ! -d "ComfyUI_PulID" ]; then
-    git clone https://github.com/balazik/ComfyUI-PuLID-Flux.git ComfyUI_PulID_Flux
-else
-    echo "✅ PuLID Flux already installed."
-fi
+# We FORCE a clean install by removing potentially broken previous attempts
+echo "🧹 Cleaning up previous PuLID attempts..."
+rm -rf ComfyUI_PulID_Flux ComfyUI-PuLID-Flux ComfyUI_PulID
+
+echo "📥 Cloning PuLID Flux..."
+git clone https://github.com/balazik/ComfyUI-PuLID-Flux.git ComfyUI_PulID_Flux
 
 # 3. Models
 echo "📥 Downloading Models (this may take a few minutes)..."
