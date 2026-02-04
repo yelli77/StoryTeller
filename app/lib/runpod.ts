@@ -104,12 +104,15 @@ function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: strin
     const width = config?.width ?? 1024;
     const height = config?.height ?? 1024;
 
-    const qualityPrefix = "(photorealistic:1.2), (extremely detailed:1.2), masterpiece, professional photography, cinematic lighting, high quality skin texture, 8k";
-    const charPrompt = config?.positivePrompt ? `${config.positivePrompt}, ` : "";
-    const bodyInjection = config?.characterTraits ? `[Physique: ${config.characterTraits}], ` : "";
+    // EXACT MATCH with successful test script logic
+    const photoStyle = "(photo:1.3), high-end studio photograph";
+    const qualitySuffix = "highly detailed, 8k, masterpiece, soft studio lighting, sharp focus";
 
-    // Combine like in the successful test script
-    const finalPrompt = `${qualityPrefix}, ${charPrompt}${prompt}, ${bodyInjection}`;
+    const charPrompt = config?.positivePrompt ? `${config.positivePrompt}, ` : "";
+    const bodyInjection = config?.characterTraits ? `${config.characterTraits}, ` : "";
+
+    // Structure: Style + Character Prompts + User Input + Physique + Suffix
+    const finalPrompt = `${photoStyle}, ${charPrompt}${prompt}, ${bodyInjection}${qualitySuffix}`;
 
     const workflow: any = {
         "10": {

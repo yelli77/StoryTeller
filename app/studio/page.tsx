@@ -317,11 +317,12 @@ export default function StudioPage() {
                         <div>
                             <p className="text-gray-500 font-bold mb-1 uppercase tracking-tighter">POSITIVE ENGINE PROMPT:</p>
                             <p className="text-gray-400 italic leading-relaxed">
-                                (Quality...),
+                                <span className="opacity-50">(Style: Photo 1.3...), </span>
                                 {selectedChar?.visualConfig?.positivePrompt && <span className="text-[var(--primary)]">{selectedChar.visualConfig.positivePrompt}</span>}
-                                {customPrompt && <>, <span className="text-white">{customPrompt}</span></>}
+                                {customPrompt ? <>, <span className="text-white">{customPrompt}</span></> : <>, [Action Prompt]</>}
                                 {selectedLoc && <>, at <span className="text-[var(--secondary)]">{selectedLoc.name}</span></>}
-                                {selectedChar?.traits && <>, [Physique: <span className="text-gray-500">{selectedChar.traits}</span>]</>}
+                                {selectedChar?.traits && <>, <span className="text-gray-500">{selectedChar.traits}</span></>}
+                                <span className="opacity-50">, (Quality Suffix...)</span>
                             </p>
                         </div>
                         {selectedChar?.visualConfig?.negativePrompt && (
