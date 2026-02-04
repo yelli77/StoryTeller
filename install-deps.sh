@@ -21,13 +21,17 @@ else
     echo "✅ ComfyUI-Manager already installed."
 fi
 
-# Use the correct public repository for PuLID Flux
-# We FORCE a clean install by removing potentially broken previous attempts
+# Use the Enhanced version of PuLID Flux (often more stable/featured)
 echo "🧹 Cleaning up previous PuLID attempts..."
 rm -rf ComfyUI_PulID_Flux ComfyUI-PuLID-Flux ComfyUI_PulID
 
-echo "📥 Cloning PuLID Flux..."
-git clone https://github.com/balazik/ComfyUI-PuLID-Flux.git ComfyUI_PulID_Flux
+echo "📥 Cloning PuLID Flux Enhanced..."
+git clone https://github.com/sipie800/ComfyUI-PuLID-Flux-Enhanced.git ComfyUI-PuLID-Flux
+
+echo "📦 Installing Python dependencies..."
+cd ComfyUI-PuLID-Flux
+python3 -m pip install -r requirements.txt
+cd ..
 
 # 3. Models
 echo "📥 Downloading Models (this may take a few minutes)..."
