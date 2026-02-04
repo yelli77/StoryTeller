@@ -110,7 +110,6 @@
     "output_node": false,
     "deprecated": false,
     "experimental": false,
-    "dev_only": false,
     "api_node": true,
     "price_badge": {
       "engine": "jsonata",
@@ -236,7 +235,6 @@
     "output_node": false,
     "deprecated": false,
     "experimental": false,
-    "dev_only": false,
     "api_node": true,
     "price_badge": null,
     "search_aliases": null
@@ -354,7 +352,6 @@
     "output_node": false,
     "deprecated": false,
     "experimental": false,
-    "dev_only": false,
     "api_node": true,
     "price_badge": null,
     "search_aliases": null

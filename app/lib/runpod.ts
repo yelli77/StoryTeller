@@ -96,37 +96,116 @@ function prepareWorkflow(prompt: string, frames: number, startImageFilename?: st
     return workflow;
 }
 
+function prepareFluxImageWorkflow(prompt: string, referenceImages?: string[], config?: Record<string, any>) {
+    const seed = config?.manualSeed ?? Math.floor(Math.random() * 1000000);
+    const steps = config?.steps ?? 25;
+    const guidance = config?.guidance ?? 3.5;
+    const width = config?.width ?? 1024;
+    const height = config?.height ?? 1024;
+
+    const qualityPrefix = "(photorealistic:1.2), (extremely detailed:1.2), masterpiece, professional photography, cinematic lighting, high quality skin texture, 8k";
+    const bodyInjection = config?.characterTraits ? `[Physique: ${config.characterTraits}], ` : "";
+    const finalPrompt = `${qualityPrefix}, ${prompt}, ${bodyInjection}`;
+
+    const workflow: any = {
+        "10": {
+            "inputs": {
+                "unet_name": "flux1-dev.sft",
+                "weight_dtype": "fp8_e4m3fn"
+            },
+            "class_type": "UNETLoader"
+        },
+        "11": {
+            "inputs": {
+                "clip_name1": "clip_l.safetensors",
+                "clip_name2": "t5xxl_fp8_e4m3fn.safetensors",
+                "type": "flux"
+            },
+            "class_type": "DualCLIPLoader"
+        },
+        "12": {
+            "inputs": {
+                "vae_name": "ae.sft"
+            },
+            "class_type": "VAELoader"
+        },
+        "13": {
+            "inputs": {
+                "width": width,
+                "height": height,
+                "batch_size": 1
+            },
+            "class_type": "EmptyLatentImage"
+        },
+        "14": {
+            "inputs": {
+                "clip_l": finalPrompt,
+                "t5xxl": finalPrompt,
+                "guidance": guidance,
+                "clip": ["11", 0]
+            },
+            "class_type": "CLIPTextEncodeFlux"
+        },
+        "15": {
+            "inputs": {
+                "seed": seed,
+                "steps": steps,
+                "cfg": 1.0,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": 1.0,
+                "model": ["10", 0],
+                "positive": ["14", 0],
+                "negative": ["14", 0],
+                "latent_image": ["13", 0]
+            },
+            "class_type": "KSampler"
+        },
+        "16": {
+            "inputs": {
+                "samples": ["15", 0],
+                "vae": ["12", 0]
+            },
+            "class_type": "VAEDecode"
+        },
+        "17": {
+            "inputs": {
+                "images": ["16", 0],
+                "filename_prefix": "StoryTeller_Flux"
+            },
+            "class_type": "SaveImage"
+        }
+    };
+
+    return workflow;
+}
+
 function prepareImageWorkflow(prompt: string, instantIDImage?: string, ipAdapterImages?: string[], config?: Record<string, any>) {
     const seed = config?.manualSeed ?? Math.floor(Math.random() * 1000000);
-    const weight = config?.instantidWeight ?? 0.8;
+    const weight = config?.instantidWeight ?? 0.95;
     const ipWeight = config?.ipWeight ?? 0.75;
+    const cfg = 1.5;
+    const steps = 12;
 
-    const globalBodyMaster = "(chubby:1.6), (soft body:1.4), (extremely large breasts:1.8), (massive bust:1.8), (huge hanging breasts:1.5), (wide hips:1.6), (thick thighs:1.7), (hourglass figure:1.7), (voluptuous:1.6), (obese:0.3), ";
+    // Quality Prefix matching the standalone scripts
+    const qualityPrefix = "full body shot, standing, centered, (photograph:1.3), (highly detailed:1.2), masterpiece, 8k, dslr";
     const bodyInjection = config?.characterTraits ? `[Character Physique: (${config.characterTraits}:1.9)], ` : "";
 
-    const isExplicit = prompt.toLowerCase().includes("naked") || prompt.toLowerCase().includes("fuck") || prompt.toLowerCase().includes("cock") || prompt.toLowerCase().includes("cum");
-    const stylePrefix = isExplicit ? "(highly explicit:1.5), (uncensored:1.5), (naked:1.4), (nude:1.4), " : "";
-
-    const actionPrompt = `${stylePrefix}((${prompt}:1.8)), ${globalBodyMaster}${bodyInjection}(photograph:1.5), (highly detailed:1.3), (authentic character likeness:1.4), (accurate facial features:1.4), masterpiece, 8k, dslr, (muted colors:1.1)`;
-
-    const globalNeg = "(noise:1.5), (grainy:1.5), (dithering:1.5), (compression artifacts:1.2), (skinny:2.0), (thin:2.0), (slender:2.0), (slim:1.8), (flat chest:2.0), (small breasts:2.0), (petite:1.5), (anorexic:1.5), (fitness model:1.4), (fit:1.3), (trash:1.5), (cluttered:1.5), (debris:1.5), (blur:1.5), (soft focus:1.5), (faded:1.3), ";
-    const styleBlock = ", raw photo, 8k uhd, cinematic lighting, masterpiece, (razor sharp:1.4), (hyper-detailed skin textures:1.4), (skin pores:1.2), (micro-detail:1.3), (ultra-realistic skin texture:1.3), (natural light:1.2), (sharp focus on eyes:1.4), subsurface scattering, highly detailed iris, f/1.8, 35mm";
-
     const posPrompt = config?.positivePrompt
-        ? `${actionPrompt}, ${config.positivePrompt}, (detailed clothing:1.2)${styleBlock}`
-        : `${actionPrompt}${styleBlock}`;
+        ? `${qualityPrefix}, ${prompt}, ${bodyInjection}${config.positivePrompt}`
+        : `${qualityPrefix}, ${prompt}, ${bodyInjection}ultra-realistic skin texture, cinematic lighting`;
 
-    const negPrompt = globalNeg + (config?.negativePrompt ?? "(worst quality, low quality:1.4), (bad anatomy:1.2), (deformed:1.2), blurry, artifacts, text, watermark, different person, wrong face, illustration, drawing, painting, cartoon, anime");
+    const baseNeg = "out of frame, cropped face, cropped feet, cut off, (worst quality, low quality:1.4), (bad anatomy:1.2), (deformed:1.2), blurry, artifacts, text, watermark, different person, wrong face, painting, cartoon, anime";
+    const negPrompt = config?.negativePrompt
+        ? `${baseNeg}, ${config.negativePrompt}`
+        : baseNeg;
 
     const workflow: any = {
         "1": { "inputs": { "ckpt_name": "RealVisXL_V4.0_Lightning.safetensors" }, "class_type": "CheckpointLoaderSimple" },
         "2": { "inputs": { "text": posPrompt, "clip": ["1", 1] }, "class_type": "CLIPTextEncode" },
         "3": { "inputs": { "text": negPrompt, "clip": ["1", 1] }, "class_type": "CLIPTextEncode" },
-        "4": { "inputs": { "width": 832, "height": 1216, "batch_size": 1 }, "class_type": "EmptyLatentImage" },
-        "5": { "inputs": { "clip_name": "clip_vision_sdxl.safetensors" }, "class_type": "CLIPVisionLoader" },
-        // STAGE 2 ACTION ISOLATOR: Forced Perspective & Movement
-        "30": { "inputs": { "text": `((${prompt}:2.0)), (leaning forward into camera lens:1.6), (huge breasts in foreground:1.5), extreme perspective, close-up, foreshortening, depth of field`, "clip": ["1", 1] }, "class_type": "CLIPTextEncode" },
-        "31": { "inputs": { "text": "(standing upright:1.8), (straight posture:1.6), (centered:1.4), skinny, slim, thin", "clip": ["1", 1] }, "class_type": "CLIPTextEncode" }
+        "4": { "inputs": { "width": 896, "height": 1152, "batch_size": 1 }, "class_type": "EmptyLatentImage" },
+        "5": { "inputs": { "clip_name": "clip_vision_sdxl.safetensors" }, "class_type": "CLIPVisionLoader" }
     };
 
     if (instantIDImage) {
@@ -138,15 +217,19 @@ function prepareImageWorkflow(prompt: string, instantIDImage?: string, ipAdapter
             "inputs": {
                 "instantid": ["7", 0], "insightface": ["8", 0], "control_net": ["10", 0],
                 "image": ["6", 0], "model": ["1", 0], "positive": ["2", 0], "negative": ["3", 0],
-                "weight": weight, "start_at": 0.0, "end_at": 1.0
+                "weight": weight, "start_at": 0.0, "end_at": 0.9
             },
             "class_type": "ApplyInstantID"
         };
-    } else { workflow["9"] = { "inputs": {}, "class_type": "Identity" }; }
+    }
 
-    let ipAdapterInputNode: any = null;
+    workflow["11"] = { "inputs": { "ipadapter_file": "ip-adapter-plus-face_sdxl_vit-h.safetensors" }, "class_type": "IPAdapterModelLoader" };
+    const modelInput = instantIDImage ? ["9", 0] : ["1", 0];
+    let samplerModelInput = modelInput;
+
+    // Handle IP-Adapter Images (for Character Soul)
     if (ipAdapterImages && ipAdapterImages.length > 0) {
-        let lastBatchNodeId = -1;
+        let lastBatchNodeId: any = null;
         ipAdapterImages.forEach((img, idx) => {
             const nodeId = 100 + idx;
             workflow[`${nodeId}`] = { "inputs": { "image": img }, "class_type": "LoadImage" };
@@ -157,23 +240,20 @@ function prepareImageWorkflow(prompt: string, instantIDImage?: string, ipAdapter
                 lastBatchNodeId = batchId;
             }
         });
-        ipAdapterInputNode = [`${lastBatchNodeId}`, 0];
-    } else if (instantIDImage) { ipAdapterInputNode = ["6", 0]; }
 
-    let locationInputNode: any = null;
-    if (config?.locationImage) {
-        workflow["50"] = { "inputs": { "image": config.locationImage }, "class_type": "LoadImage" };
-        locationInputNode = ["50", 0];
-    }
-
-    workflow["11"] = { "inputs": { "ipadapter_file": "ip-adapter-plus-face_sdxl_vit-h.safetensors" }, "class_type": "IPAdapterModelLoader" };
-    const modelInput = instantIDImage ? ["9", 0] : ["1", 0];
-    let samplerModelInput = modelInput;
-
-    if (ipAdapterInputNode) {
         workflow["12"] = {
             "inputs": {
-                "model": samplerModelInput, "ipadapter": ["11", 0], "clip_vision": ["5", 0], "image": ipAdapterInputNode,
+                "model": samplerModelInput, "ipadapter": ["11", 0], "clip_vision": ["5", 0], "image": [`${lastBatchNodeId}`, 0],
+                "weight": ipWeight, "weight_type": "linear", "combine_embeds": "concat", "embeds_scaling": "V only", "start_at": 0.0, "end_at": 0.9
+            },
+            "class_type": "IPAdapterAdvanced"
+        };
+        samplerModelInput = ["12", 0];
+    } else if (instantIDImage) {
+        // Fallback: Use the InstantID image also for IP-Adapter to boost likeness
+        workflow["12"] = {
+            "inputs": {
+                "model": samplerModelInput, "ipadapter": ["11", 0], "clip_vision": ["5", 0], "image": ["6", 0],
                 "weight": ipWeight, "weight_type": "linear", "combine_embeds": "concat", "embeds_scaling": "V only", "start_at": 0.0, "end_at": 0.9
             },
             "class_type": "IPAdapterAdvanced"
@@ -181,56 +261,40 @@ function prepareImageWorkflow(prompt: string, instantIDImage?: string, ipAdapter
         samplerModelInput = ["12", 0];
     }
 
-    if (locationInputNode) {
-        workflow["60"] = {
+    // Handle Location / Set Background
+    if (config?.locationImage) {
+        workflow["60"] = { "inputs": { "image": config.locationImage }, "class_type": "LoadImage" };
+        workflow["61"] = {
             "inputs": {
-                "model": samplerModelInput, "ipadapter": ["11", 0], "clip_vision": ["5", 0], "image": locationInputNode,
+                "model": samplerModelInput, "ipadapter": ["11", 0], "clip_vision": ["5", 0], "image": ["60", 0],
                 "weight": config?.locationWeight ?? 0.65, "weight_type": "strong style transfer", "combine_embeds": "concat", "embeds_scaling": "V only", "start_at": 0.0, "end_at": 0.8
             },
             "class_type": "IPAdapterAdvanced"
         };
-        samplerModelInput = ["60", 0];
+        samplerModelInput = ["61", 0];
     }
 
-    // --- STAGE 1: ANATOMY & LIKENESS (Construction) ---
-    workflow["13"] = {
+    // --- SAMPLING (Base) ---
+    workflow["14"] = {
         "inputs": {
-            "seed": seed, "steps": 8, "cfg": 1.5, "sampler_name": "dpmpp_sde", "scheduler": "karras", "denoise": 1.0,
+            "seed": seed, "steps": 15, "cfg": cfg, "sampler_name": "euler", "scheduler": "karras", "denoise": 1.0,
             "model": samplerModelInput, "positive": instantIDImage ? ["9", 1] : ["2", 0], "negative": instantIDImage ? ["9", 2] : ["3", 0], "latent_image": ["4", 0]
         },
         "class_type": "KSampler"
     };
 
-    // --- STAGE 2: ACTION REFINEMENT (Pure Action Override) ---
-    workflow["14"] = {
+    // --- HI-RES REFINEMENT ---
+    workflow["15"] = { "inputs": { "upscale_method": "bicubic", "scale_by": 1.5, "samples": ["14", 0] }, "class_type": "LatentUpscaleBy" };
+    workflow["16"] = {
         "inputs": {
-            "seed": seed, "steps": 15, "cfg": 5.0, "sampler_name": "euler_ancestral", "scheduler": "karras", "denoise": 0.78,
-            "model": samplerModelInput, "positive": ["30", 0], "negative": ["31", 0], "latent_image": ["13", 0]
-        },
-        "class_type": "KSampler"
-    };
-
-    // --- STAGE 3: DETAILING (4K Upscale & Texture) ---
-    workflow["16"] = { "inputs": { "upscale_method": "bicubic", "scale_by": 2.0, "samples": ["14", 0] }, "class_type": "LatentUpscaleBy" };
-    workflow["15"] = {
-        "inputs": {
-            "seed": seed, "steps": 12, "cfg": 1.5, "sampler_name": "dpmpp_2m_sde_gpu", "scheduler": "karras", "denoise": 0.45,
-            "model": samplerModelInput, "positive": instantIDImage ? ["9", 1] : ["2", 0], "negative": instantIDImage ? ["9", 2] : ["3", 0], "latent_image": ["16", 0]
-        },
-        "class_type": "KSampler"
-    };
-
-    // --- STAGE 4: POLISHING (Noise Removal & Finish) ---
-    workflow["18"] = {
-        "inputs": {
-            "seed": seed, "steps": 10, "cfg": 1.2, "sampler_name": "euler_ancestral", "scheduler": "karras", "denoise": 0.18,
+            "seed": seed, "steps": 12, "cfg": cfg, "sampler_name": "euler", "scheduler": "karras", "denoise": 0.55,
             "model": samplerModelInput, "positive": instantIDImage ? ["9", 1] : ["2", 0], "negative": instantIDImage ? ["9", 2] : ["3", 0], "latent_image": ["15", 0]
         },
         "class_type": "KSampler"
     };
 
-    workflow["20"] = { "inputs": { "samples": ["18", 0], "vae": ["1", 2] }, "class_type": "VAEDecode" };
-    workflow["21"] = { "inputs": { "filename_prefix": "StoryTeller_Elite", "images": ["20", 0] }, "class_type": "SaveImage" };
+    workflow["20"] = { "inputs": { "samples": ["16", 0], "vae": ["1", 2] }, "class_type": "VAEDecode" };
+    workflow["21"] = { "inputs": { "filename_prefix": "StoryTeller_Manual_Premium", "images": ["20", 0] }, "class_type": "SaveImage" };
 
     return workflow;
 }
@@ -283,7 +347,11 @@ export async function generateRunpodImage(prompt: string, referenceImages?: stri
             config.locationImage = await uploadImageToPod(config.locationImage);
         }
 
-        const workflow = prepareImageWorkflow(prompt, instantIDFilename, ipAdapterFilenames, config);
+        // We ARE CHANGING THE PLAN TO FLUX
+        const useFlux = true; // Always use Flux now
+        const workflow = useFlux
+            ? prepareFluxImageWorkflow(prompt, referenceImages, config)
+            : prepareImageWorkflow(prompt, instantIDFilename, ipAdapterFilenames, config);
 
         const response = await fetch(`${getPodUrl()}/prompt`, {
             method: 'POST',
@@ -302,9 +370,9 @@ export async function generateRunpodImage(prompt: string, referenceImages?: stri
 
             if (history[prompt_id]) {
                 const outputs = history[prompt_id].outputs;
-                const saveNode = outputs["21"] || Object.values(outputs)[0];
-                if (saveNode && saveNode.images?.[0]) {
-                    const img = saveNode.images[0];
+                const saveNode = outputs["17"] || outputs["8"] || outputs["21"] || Object.values(outputs)[0];
+                if (saveNode && (saveNode as any).images?.[0]) {
+                    const img = (saveNode as any).images[0];
                     return { imageUrl: `${getPodUrl()}/view?filename=${img.filename}&type=${img.type}` };
                 }
                 return { error: "No image in ComfyUI output" };

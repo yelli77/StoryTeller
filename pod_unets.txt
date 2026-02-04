@@ -1,3 +1,1 @@
-flux1-schnell-fp8.safetensors
-flux1-schnell.safetensors
-hunyuan_video_720_cfg_distill_fp8_e4m3fn.safetensors
+flux1-dev.sft

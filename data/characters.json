@@ -7,17 +7,9 @@
     "voiceId": "21m00Tcm4TlvDq8ikWAM",
     "image": "/uploads/1769946501745-image_(1).jpg",
     "isCamera": false,
-    "parameters": {
-      "instantidWeight": 0.95,
-      "ipWeight": 0.9,
-      "cfg": 1.5,
-      "endAt": 0.9,
-      "ipEnd": 0.9,
-      "steps": 12
-    },
     "visualConfig": {
-      "positivePrompt": "raw photo, perfect likeness, (sleeveless grey athletic bodysuit:1.5), (matte cotton fabric:1.2), (clear lens rounded spectacles:1.4), (curvy fit voluptuous body:1.3), (wide hips:1.2), standing in a luxury swimming pool, golden-brown hair, cinematic lighting, masterpiece, 8k, ultra-realistic skin",
-      "negativePrompt": "(green clothing:1.5), (blue clothing:1.5), (teal:1.5), (turquoise:1.5), (naked:2.0), (nude:2.0), (generated sunglasses:1.5), (tinted glasses:1.4), (sequins:1.5), (sparkles:1.5), (shiny fabric:1.4), (wet look:1.2), (blue clothing:1.4), (unclothed:2.0), (exposed breasts:2.0), (cleavage:1.5), (lingerie:1.8), (long sleeves:1.6), (buttons:1.6), (sleeves:1.5), bad anatomy, low quality"
+      "positivePrompt": "clara_character, young woman, golden-brown hair, glasses, gray tank top, voluptuous hourglass figure, large bust, flat stomach, wide hips, soft curves, (accurate facial features:1.4)",
+      "negativePrompt": "(green clothing:1.5), (blue clothing:1.5), (teal:1.5), (turquoise:1.5), (naked:2.0), (nude:2.0), (generated sunglasses:1.5), (tinted glasses:1.4), (sequins:1.5), (sparkles:1.5), (shiny fabric:1.4), (wet look:1.2), (blue clothing:1.4), (unclothed:2.0), (exposed breasts:2.0), (cleavage:1.5), (lingerie:1.8), (long sleeves:1.6), (buttons:1.6), (sleeves:1.5)"
     },
     "referenceImages": [
       "/characters/clara/ref/ref_1.png",
@@ -34,7 +26,27 @@
       "/characters/clara/ref/ref_12.png",
       "/characters/clara/ref/ref_13.png",
       "/characters/clara/ref/ref_14.png",
-      "/characters/clara/ref/ref_15.png"
+      "/characters/clara/ref/ref_15.png",
+      "/characters/clara/ref/ref_4k_bodysuit_1.png",
+      "/characters/clara/ref/ref_4k_bodysuit_2.png",
+      "/characters/clara/ref/ref_4k_bodysuit_3.png",
+      "/characters/clara/ref/ref_4k_bodysuit_4.png",
+      "/characters/clara/ref/ref_4k_bodysuit_5.png",
+      "/characters/clara/ref/ref_4k_bodysuit_6.png",
+      "/characters/clara/ref/ref_4k_bodysuit_7.png",
+      "/characters/clara/ref/ref_4k_bodysuit_8.png",
+      "/characters/clara/ref/ref_4k_bodysuit_9.png",
+      "/characters/clara/ref/ref_4k_bodysuit_10.png",
+      "/characters/clara/ref/ref_4k_naked_1.png",
+      "/characters/clara/ref/ref_4k_naked_2.png",
+      "/characters/clara/ref/ref_4k_naked_3.png",
+      "/characters/clara/ref/ref_4k_naked_4.png",
+      "/characters/clara/ref/ref_4k_naked_5.png",
+      "/characters/clara/ref/ref_4k_naked_6.png",
+      "/characters/clara/ref/ref_4k_naked_7.png",
+      "/characters/clara/ref/ref_4k_naked_8.png",
+      "/characters/clara/ref/ref_4k_naked_9.png",
+      "/characters/clara/ref/ref_4k_naked_10.png"
     ]
   },
   {
@@ -52,18 +64,10 @@
     "role": "The Chill Best Friend",
     "traits": "Emily ist der Gegenpol zu den Konflikten. Sie trägt meistens ein enges pinkes Oberteil.",
     "voiceId": "piTKgcLEGmPE4e6mEKli",
-    "image": "/uploads/1769595391317-grok-image-c0d5e27e-d7a9-437b-b5bd-b82fc1e3f2de.png",
-    "parameters": {
-      "instantidWeight": 0.9,
-      "ipWeight": 0.85,
-      "cfg": 1.5,
-      "steps": 12,
-      "endAt": 0.8,
-      "ipEnd": 0.8
-    },
+    "image": "/uploads/1770048788120-image_(2).jpg",
     "visualConfig": {
-      "positivePrompt": "raw photo, perfect likeness, (tight sleeveless pink top:1.3), highly detailed skin surface, subsurface scattering, cinematic lighting, masterpiece, 8k",
-      "negativePrompt": "(naked:2.0), (nude:2.0), (unclothed:2.0), (nsfw:2.0), (exposed breasts:2.0), (cleavage:1.5), (long sleeves:1.6), bad anatomy, low quality"
+      "positivePrompt": "emily_character, young woman, dark hair, pink sleeveless top, (highly detailed face:1.3), very large heavy breasts, slender fit body, athletic build, round toned glutes",
+      "negativePrompt": "(naked:2.0), (nude:2.0), (unclothed:2.0), (nsfw:2.0), (exposed breasts:2.0), (cleavage:1.5), (long sleeves:1.6)"
     },
     "referenceImages": [
       "/characters/emily/ref/ref_1.png",
@@ -80,7 +84,27 @@
       "/characters/emily/ref/ref_12.png",
       "/characters/emily/ref/ref_13.png",
       "/characters/emily/ref/ref_14.png",
-      "/characters/emily/ref/ref_15.png"
+      "/characters/emily/ref/ref_15.png",
+      "/characters/emily/ref/ref_4k_bodysuit_1.png",
+      "/characters/emily/ref/ref_4k_bodysuit_2.png",
+      "/characters/emily/ref/ref_4k_bodysuit_3.png",
+      "/characters/emily/ref/ref_4k_bodysuit_4.png",
+      "/characters/emily/ref/ref_4k_bodysuit_5.png",
+      "/characters/emily/ref/ref_4k_bodysuit_6.png",
+      "/characters/emily/ref/ref_4k_bodysuit_7.png",
+      "/characters/emily/ref/ref_4k_bodysuit_8.png",
+      "/characters/emily/ref/ref_4k_bodysuit_9.png",
+      "/characters/emily/ref/ref_4k_bodysuit_10.png",
+      "/characters/emily/ref/ref_4k_naked_1.png",
+      "/characters/emily/ref/ref_4k_naked_2.png",
+      "/characters/emily/ref/ref_4k_naked_3.png",
+      "/characters/emily/ref/ref_4k_naked_4.png",
+      "/characters/emily/ref/ref_4k_naked_5.png",
+      "/characters/emily/ref/ref_4k_naked_6.png",
+      "/characters/emily/ref/ref_4k_naked_7.png",
+      "/characters/emily/ref/ref_4k_naked_8.png",
+      "/characters/emily/ref/ref_4k_naked_9.png",
+      "/characters/emily/ref/ref_4k_naked_10.png"
     ]
   },
   {
@@ -89,18 +113,10 @@
     "role": "Die Drama-Queen / Die Komplizierte",
     "traits": "Mia trägt oft ein elegantes aber enges Oberteil in Pink oder Violett.",
     "voiceId": "MF3mGyEYCl7XYWbV9V6O",
-    "image": "/uploads/1769595579145-grok-image-905ac7e8-6545-4078-bb9f-684263a3acb0.png",
-    "parameters": {
-      "instantidWeight": 0.9,
-      "ipWeight": 0.85,
-      "cfg": 1.5,
-      "steps": 12,
-      "endAt": 0.8,
-      "ipEnd": 0.8
-    },
+    "image": "/uploads/1770048915028-image_(3).jpg",
     "visualConfig": {
-      "positivePrompt": "raw photo, perfect likeness, (tight sleeveless pink v-neck top:1.3), emotional expression, masterpiece, 8k",
-      "negativePrompt": "(naked:2.0), (nude:2.0), (unclothed:2.0), (nsfw:20), (exposed breasts:2.0), (long sleeves:1.6), bad anatomy, low quality"
+      "positivePrompt": "mia_character, young woman, dark hair, (highly detailed face:1.3), pink v-neck top, dramatic expression, slender build",
+      "negativePrompt": "(naked:2.0), (nude:2.0), (unclothed:2.0), (nsfw:20), (exposed breasts:2.0), (long sleeves:1.6)"
     },
     "referenceImages": [
       "/characters/mia/ref/ref_1.png",
@@ -117,7 +133,27 @@
       "/characters/mia/ref/ref_12.png",
       "/characters/mia/ref/ref_13.png",
       "/characters/mia/ref/ref_14.png",
-      "/characters/mia/ref/ref_15.png"
+      "/characters/mia/ref/ref_15.png",
+      "/characters/mia/ref/ref_4k_bodysuit_1.png",
+      "/characters/mia/ref/ref_4k_bodysuit_2.png",
+      "/characters/mia/ref/ref_4k_bodysuit_3.png",
+      "/characters/mia/ref/ref_4k_bodysuit_4.png",
+      "/characters/mia/ref/ref_4k_bodysuit_5.png",
+      "/characters/mia/ref/ref_4k_bodysuit_6.png",
+      "/characters/mia/ref/ref_4k_bodysuit_7.png",
+      "/characters/mia/ref/ref_4k_bodysuit_8.png",
+      "/characters/mia/ref/ref_4k_bodysuit_9.png",
+      "/characters/mia/ref/ref_4k_bodysuit_10.png",
+      "/characters/mia/ref/ref_4k_naked_1.png",
+      "/characters/mia/ref/ref_4k_naked_2.png",
+      "/characters/mia/ref/ref_4k_naked_3.png",
+      "/characters/mia/ref/ref_4k_naked_4.png",
+      "/characters/mia/ref/ref_4k_naked_5.png",
+      "/characters/mia/ref/ref_4k_naked_6.png",
+      "/characters/mia/ref/ref_4k_naked_7.png",
+      "/characters/mia/ref/ref_4k_naked_8.png",
+      "/characters/mia/ref/ref_4k_naked_9.png",
+      "/characters/mia/ref/ref_4k_naked_10.png"
     ]
   }
 ]

@@ -1,4 +1,1 @@
-RealVisXL_V4.0_Lightning.safetensors
-ip-adapter_sdxl.safetensors
-juggernautXL_v9RdPhoto2Lightning.safetensors
-sd_xl_base_1.0.safetensors
+v1-5-pruned-emaonly-fp16.safetensors

@@ -93,7 +93,7 @@ async function runTest(prompt, weight, cfg, endAt, identifier) {
 }
 
 async function runSingleWithEndAt(prompt, weight, cfg, endAt) {
-    const POD_ID = process.env.RUNPOD_POD_ID || 'g4oysjh535la54';
+    const POD_ID = process.env.RUNPOD_POD_ID || '9f4cwila6ehy9g';
     const BASE_URL = `https://${POD_ID}-8188.proxy.runpod.net`;
 
     // 1. Upload Ref Image

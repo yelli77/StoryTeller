@@ -1,7 +1,7 @@
 const fs = require('fs');
 require('dotenv').config({ path: '.env.local' });
 
-const POD_ID = process.env.RUNPOD_POD_ID || 'g4oysjh535la54';
+const POD_ID = process.env.RUNPOD_POD_ID || '9f4cwila6ehy9g';
 const BASE_URL = `https://${POD_ID}-8188.proxy.runpod.net`;
 const PROMPT_ID = '244c6268-cf29-4fce-addc-dc18cf18b2e1';
 

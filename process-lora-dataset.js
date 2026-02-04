@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-const POD_ID = 'g4oysjh535la54';
+const POD_ID = '9f4cwila6ehy9g';
 const BASE_URL = `https://${POD_ID}-8188.proxy.runpod.net`;
 const OUTPUT_DIR = path.join(__dirname, 'training_data');
 

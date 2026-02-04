@@ -34,6 +34,7 @@ export default function Home() {
           <Link href="/story" className="btn-primary">New Script</Link>
           <Link href="/studio" className="btn-primary bg-purple-600 hover:bg-purple-500 border-purple-400">Manual Studio</Link>
           <Link href="/characters" className="btn-secondary">Add Character</Link>
+          <Link href="/qa" className="btn-secondary border-blue-500/30 text-blue-400">QA Dashboard</Link>
         </div>
       </div>
     </div>

@@ -1,28 +1,20 @@
-const fs = require('fs');
+const https = require('https');
 require('dotenv').config({ path: '.env.local' });
 
-const POD_ID = process.env.RUNPOD_POD_ID || 'g4oysjh535la54';
+const POD_ID = process.env.RUNPOD_POD_ID;
 const BASE_URL = `https://${POD_ID}-8188.proxy.runpod.net`;
 
-async function getDetailedNodeInfo() {
+async function nodeDetails() {
     try {
         const res = await fetch(`${BASE_URL}/object_info`);
         const data = await res.json();
 
-        const nodes = ['ApplyInstantID', 'IPAdapterAdvanced', 'KSampler'];
-        const info = {};
+        console.log("--- PulidFluxInsightFaceLoader ---");
+        console.log(JSON.stringify(data["PulidFluxInsightFaceLoader"], null, 2));
 
-        nodes.forEach(node => {
-            if (data[node]) {
-                info[node] = data[node].input;
-            }
-        });
-
-        fs.writeFileSync('node_details.json', JSON.stringify(info, null, 2));
-        console.log("Detailed node info saved to node_details.json");
-    } catch (err) {
-        console.error("Error:", err.message);
+    } catch (e) {
+        console.error(e.message);
     }
 }
 
-getDetailedNodeInfo();
+nodeDetails();

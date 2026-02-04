@@ -2,7 +2,7 @@ const fs = require('fs');
 const https = require('https');
 const path = require('path');
 
-const POD_ID = 'g4oysjh535la54';
+const POD_ID = '9f4cwila6ehy9g';
 const BASE_URL = `https://${POD_ID}-8188.proxy.runpod.net`; // ComfyUI port usually
 // But for executing shell commands, we technically need the SSH or Jupyter port usually.
 // However, allow me to try a trick: Using ComfyUI's "SaveImage" node to write a shell script and "LoadImage" (with a custom node if available) to execute? No, too hacky.

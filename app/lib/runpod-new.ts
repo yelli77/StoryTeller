@@ -1,5 +1,5 @@
 
-const POD_ID = process.env.NEXT_PUBLIC_RUNPOD_POD_ID || process.env.RUNPOD_POD_ID || 'g4oysjh535la54';
+const POD_ID = process.env.NEXT_PUBLIC_RUNPOD_POD_ID || process.env.RUNPOD_POD_ID || '9f4cwila6ehy9g';
 const BASE_URL = `https://${POD_ID}-8188.proxy.runpod.net`;
 
 export interface RunpodVideoResult {
@@ -100,7 +100,7 @@ function prepareWorkflow(prompt: string, frames: number, startImageFilename?: st
 
     workflow["7"] = {
         "inputs": {
-            "text": "low quality, blurry, distorted, watermark, text",
+            "text": "worst quality, low quality, blurry, distorted, watermark, text, bad anatomy, deformed",
             "clip": ["4", 0]
         },
         "class_type": "CLIPTextEncode"
@@ -141,25 +141,29 @@ function prepareWorkflow(prompt: string, frames: number, startImageFilename?: st
 function prepareImageWorkflow(prompt: string, referenceImageBase64?: string, config?: any) {
     const seed = config?.manualSeed ?? Math.floor(Math.random() * 1000000);
 
-    // Professional Dual-Adapter Setup: InstantID (structure) + IP-Adapter (texture/soul)
-    const weight = config?.instantidWeight ?? 0.8;
-    const ipWeight = config?.ipWeight ?? 0.7;
+    // MATCH PREMIUM BLACKWELL SETTINGS
+    const weight = config?.instantidWeight ?? 0.95;
+    const ipWeight = config?.ipWeight ?? 0.75;
     const cfg = 1.5;
-    const endAt = config?.endAt ?? 0.8;
+    const endAt = config?.endAt ?? 0.9;
 
-    const actionPrompt = prompt ? `(photograph:1.5), (highly detailed:1.2), ${prompt}` : '';
+    const qualityPrefix = "full body shot, standing, centered, (photograph:1.3), (highly detailed:1.2), masterpiece, 8k, dslr";
+    const actionPrompt = prompt ? `${prompt}` : '';
 
     const posPrompt = config?.positivePrompt
-        ? `${actionPrompt}, ${config.positivePrompt}`
-        : `${actionPrompt}, raw photo, 8k uhd, cinematic lighting, masterpiece, ultra-realistic skin texture, centered composition`;
+        ? `${qualityPrefix}, ${actionPrompt}, ${config.positivePrompt}`
+        : `${qualityPrefix}, ${actionPrompt}, ultra-realistic skin texture, cinematic lighting`;
 
-    const negPrompt = config?.negativePrompt ?? "anime, cartoon, graphic, (worst quality, low quality:1.4), deformed, blurry, artifacts, text, watermark, different person, wrong face";
+    const baseNeg = "out of frame, cropped face, cropped feet, cut off, (worst quality, low quality:1.4), (bad anatomy:1.2), (deformed:1.2), blurry, artifacts, text, watermark, different person, wrong face, painting, cartoon, anime";
+    const negPrompt = config?.negativePrompt
+        ? `${baseNeg}, ${config.negativePrompt}`
+        : baseNeg;
 
     const steps = 15;
 
     const workflow: any = {
         "1": {
-            "inputs": { "ckpt_name": "juggernautXL_v9RdPhoto2Lightning.safetensors" },
+            "inputs": { "ckpt_name": "RealVisXL_V4.0_Lightning.safetensors" },
             "class_type": "CheckpointLoaderSimple"
         },
         "2": {
@@ -171,7 +175,7 @@ function prepareImageWorkflow(prompt: string, referenceImageBase64?: string, con
             "class_type": "CLIPTextEncode"
         },
         "4": {
-            "inputs": { "width": 832, "height": 1216, "batch_size": 1 },
+            "inputs": { "width": 896, "height": 1152, "batch_size": 1 },
             "class_type": "EmptyLatentImage"
         },
         "5": {
@@ -186,22 +190,20 @@ function prepareImageWorkflow(prompt: string, referenceImageBase64?: string, con
             "class_type": "LoadImage"
         };
 
-        // --- INSTANTID SETUP (Facial Structure) ---
+        // --- INSTANTID ---
         workflow["7"] = {
             "inputs": { "instantid_file": "instantid-ip-adapter.bin" },
             "class_type": "InstantIDModelLoader"
         };
         workflow["8"] = {
-            "inputs": {
-                "provider": "CPU"
-            },
+            "inputs": { "provider": "CPU" },
             "class_type": "InstantIDFaceAnalysis"
         };
         workflow["9"] = {
             "inputs": {
                 "instantid": ["7", 0],
                 "insightface": ["8", 0],
-                "control_net": ["10", 0],
+                "control_net": ["11", 0],
                 "image": ["6", 0],
                 "model": ["1", 0],
                 "positive": ["2", 0],
@@ -212,20 +214,20 @@ function prepareImageWorkflow(prompt: string, referenceImageBase64?: string, con
             },
             "class_type": "ApplyInstantID"
         };
-        workflow["10"] = {
+        workflow["11"] = {
             "inputs": { "control_net_name": "instantid-controlnet-sdxl.safetensors" },
             "class_type": "ControlNetLoader"
         };
 
-        // --- IPADAPTER SETUP (Texture/Soul) ---
-        workflow["11"] = {
+        // --- IPADAPTER ---
+        workflow["12"] = {
             "inputs": { "ipadapter_file": "ip-adapter-plus-face_sdxl_vit-h.safetensors" },
             "class_type": "IPAdapterModelLoader"
         };
-        workflow["12"] = {
+        workflow["13"] = {
             "inputs": {
                 "model": ["9", 0],
-                "ipadapter": ["11", 0],
+                "ipadapter": ["12", 0],
                 "clip_vision": ["5", 0],
                 "image": ["6", 0],
                 "weight": ipWeight,
@@ -233,21 +235,21 @@ function prepareImageWorkflow(prompt: string, referenceImageBase64?: string, con
                 "combine_embeds": "concat",
                 "embeds_scaling": "V only",
                 "start_at": 0.0,
-                "end_at": 1.0
+                "end_at": 0.9
             },
             "class_type": "IPAdapterAdvanced"
         };
 
-        // --- SAMPLING ---
-        workflow["13"] = {
+        // --- SAMPLING (Base) ---
+        workflow["14"] = {
             "inputs": {
                 "seed": seed,
                 "steps": steps,
                 "cfg": cfg,
-                "sampler_name": "dpmpp_sde",
+                "sampler_name": "euler",
                 "scheduler": "karras",
                 "denoise": 1.0,
-                "model": ["12", 0],
+                "model": ["13", 0],
                 "positive": ["9", 1],
                 "negative": ["9", 2],
                 "latent_image": ["4", 0]
@@ -255,43 +257,43 @@ function prepareImageWorkflow(prompt: string, referenceImageBase64?: string, con
             "class_type": "KSampler"
         };
 
-        // High-Res Refinement Pass
-        workflow["14"] = {
-            "inputs": { "scale_by": 1.25, "upscale_method": "bilinear", "samples": ["13", 0] },
+        // High-Res Pass (1.5x)
+        workflow["15"] = {
+            "inputs": { "scale_by": 1.5, "upscale_method": "bicubic", "samples": ["14", 0] },
             "class_type": "LatentUpscaleBy"
         };
-        workflow["15"] = {
+        workflow["16"] = {
             "inputs": {
                 "seed": seed,
-                "steps": 8,
+                "steps": 12,
                 "cfg": cfg,
-                "sampler_name": "dpmpp_sde",
+                "sampler_name": "euler",
                 "scheduler": "karras",
-                "denoise": 0.45,
-                "model": ["12", 0],
+                "denoise": 0.55,
+                "model": ["13", 0],
                 "positive": ["9", 1],
                 "negative": ["9", 2],
-                "latent_image": ["14", 0]
+                "latent_image": ["15", 0]
             },
             "class_type": "KSampler"
         };
 
         workflow["20"] = {
-            "inputs": { "samples": ["15", 0], "vae": ["1", 2] },
+            "inputs": { "samples": ["16", 0], "vae": ["1", 2] },
             "class_type": "VAEDecode"
         };
         workflow["21"] = {
-            "inputs": { "filename_prefix": "StoryTeller_InstantID", "images": ["20", 0] },
+            "inputs": { "filename_prefix": "StoryTeller_Final", "images": ["20", 0] },
             "class_type": "SaveImage"
         };
     } else {
-        // Text-only mode
-        workflow["9"] = {
+        // Text-only mode fallback
+        workflow["14"] = {
             "inputs": {
                 "seed": seed,
                 "steps": steps,
                 "cfg": cfg,
-                "sampler_name": "dpmpp_sde",
+                "sampler_name": "dpmpp_2m_sde",
                 "scheduler": "karras",
                 "denoise": 1.0,
                 "model": ["1", 0],
@@ -302,7 +304,7 @@ function prepareImageWorkflow(prompt: string, referenceImageBase64?: string, con
             "class_type": "KSampler"
         };
         workflow["20"] = {
-            "inputs": { "samples": ["9", 0], "vae": ["1", 2] },
+            "inputs": { "samples": ["14", 0], "vae": ["1", 2] },
             "class_type": "VAEDecode"
         };
         workflow["21"] = {
