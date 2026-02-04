@@ -146,21 +146,6 @@ function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: strin
             },
             "class_type": "CLIPTextEncodeFlux"
         },
-        "15": {
-            "inputs": {
-                "seed": seed,
-                "steps": steps,
-                "cfg": 1.0,
-                "sampler_name": "euler",
-                "scheduler": "simple",
-                "denoise": 1.0,
-                "model": ["10", 0],
-                "positive": ["14", 0],
-                "negative": ["14", 0],
-                "latent_image": ["13", 0]
-            },
-            "class_type": "KSampler"
-        },
         "16": {
             "inputs": {
                 "samples": ["15", 0],
@@ -170,34 +155,56 @@ function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: strin
         }
     };
 
-    // Apply Likeness Support if reference image exists
+    // Model to be used in KSampler
+    let finalModel: any = ["10", 0];
+
+    // Apply Native PuLID Flux if reference image exists
     if (referenceImageFilename) {
         workflow["20"] = {
             "inputs": { "image": referenceImageFilename },
             "class_type": "LoadImage"
         };
+
+        // Native PuLID Loaders
         workflow["30"] = {
-            "inputs": {
-                "enabled": true,
-                "input_image": ["16", 0],
-                "swap_model": "inswapper_128.onnx",
-                "facedetection": "retinaface_resnet50",
-                "face_restore_model": "codeformer-v0.1.0.pth",
-                "face_restore_visibility": 1.0,
-                "codeformer_weight": 0.5,
-                "detect_gender_input": "no",
-                "detect_gender_source": "no",
-                "input_faces_index": "0",
-                "source_faces_index": "0",
-                "console_log_level": 1,
-                "source_image": ["20", 0]
-            },
-            "class_type": "ReActorFaceSwap"
+            "inputs": { "pulid_file": "pulid_flux_v0.9.0.safetensors" },
+            "class_type": "PulidFluxModelLoader"
         };
+        workflow["31"] = {
+            "inputs": {},
+            "class_type": "PulidFluxEvaClipLoader"
+        };
+        workflow["32"] = {
+            "inputs": { "provider": "CUDA" },
+            "class_type": "PulidFluxInsightFaceLoader"
+        };
+
+        // Apply PuLID Node
+        workflow["33"] = {
+            "inputs": {
+                "model": ["10", 0],
+                "pulid_flux": ["30", 0],
+                "eva_clip": ["31", 0],
+                "face_analysis": ["32", 0],
+                "image": ["20", 0],
+                "weight": 1.0,
+                "start_at": 0.0,
+                "end_at": 1.0,
+                "fusion": "mean",
+                "fusion_weight_max": 1.0,
+                "fusion_weight_min": 0.0,
+                "train_step": 1000,
+                "use_gray": true
+            },
+            "class_type": "ApplyPulidFlux"
+        };
+
+        finalModel = ["33", 0];
+
         workflow["17"] = {
             "inputs": {
-                "images": ["30", 0],
-                "filename_prefix": "StoryTeller_Flux_Likeness"
+                "images": ["16", 0],
+                "filename_prefix": "StoryTeller_Flux_Native"
             },
             "class_type": "SaveImage"
         };
@@ -211,8 +218,26 @@ function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: strin
         };
     }
 
+    // KSampler (always at the end to catch model changes)
+    workflow["15"] = {
+        "inputs": {
+            "seed": seed,
+            "steps": steps,
+            "cfg": 1.0,
+            "sampler_name": "euler",
+            "scheduler": "simple",
+            "denoise": 1.0,
+            "model": finalModel,
+            "positive": ["14", 0],
+            "negative": ["14", 0],
+            "latent_image": ["13", 0]
+        },
+        "class_type": "KSampler"
+    };
+
     return workflow;
 }
+
 
 function prepareImageWorkflow(prompt: string, instantIDImage?: string, ipAdapterImages?: string[], config?: Record<string, any>) {
     const seed = config?.manualSeed ?? Math.floor(Math.random() * 1000000);

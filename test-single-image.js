@@ -73,7 +73,12 @@ function constructWorkflow(uploadedImageName) {
                 "image": ["20", 0],
                 "weight": 1.0,
                 "start_at": 0.0,
-                "end_at": 1.0
+                "end_at": 1.0,
+                "fusion": "mean",
+                "fusion_weight_max": 1.0,
+                "fusion_weight_min": 0.0,
+                "train_step": 1000,
+                "use_gray": true
             },
             "class_type": "ApplyPulidFlux"
         },

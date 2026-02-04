@@ -1,0 +1,128 @@
+{
+  "PulidFluxModelLoader": {
+    "required": {
+      "pulid_file": [
+        [
+          "pulid_flux_v0.9.0.safetensors"
+        ]
+      ]
+    }
+  },
+  "PulidFluxEvaClipLoader": {
+    "required": {}
+  },
+  "PulidFluxInsightFaceLoader": {
+    "required": {
+      "provider": [
+        [
+          "CPU",
+          "CUDA",
+          "ROCM"
+        ]
+      ]
+    }
+  },
+  "ApplyPulidFlux": {
+    "required": {
+      "model": [
+        "MODEL"
+      ],
+      "pulid_flux": [
+        "PULIDFLUX"
+      ],
+      "eva_clip": [
+        "EVA_CLIP"
+      ],
+      "face_analysis": [
+        "FACEANALYSIS"
+      ],
+      "image": [
+        "IMAGE"
+      ],
+      "weight": [
+        "FLOAT",
+        {
+          "default": 1,
+          "min": -1,
+          "max": 5,
+          "step": 0.05
+        }
+      ],
+      "start_at": [
+        "FLOAT",
+        {
+          "default": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        }
+      ],
+      "end_at": [
+        "FLOAT",
+        {
+          "default": 1,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        }
+      ],
+      "fusion": [
+        [
+          "mean",
+          "concat",
+          "max",
+          "norm_id",
+          "max_token",
+          "auto_weight",
+          "train_weight"
+        ]
+      ],
+      "fusion_weight_max": [
+        "FLOAT",
+        {
+          "default": 1,
+          "min": 0,
+          "max": 20,
+          "step": 0.1
+        }
+      ],
+      "fusion_weight_min": [
+        "FLOAT",
+        {
+          "default": 0,
+          "min": 0,
+          "max": 20,
+          "step": 0.1
+        }
+      ],
+      "train_step": [
+        "INT",
+        {
+          "default": 1000,
+          "min": 0,
+          "max": 20000,
+          "step": 1
+        }
+      ],
+      "use_gray": [
+        "BOOLEAN",
+        {
+          "default": true,
+          "label_on": "enabled",
+          "label_off": "disabled"
+        }
+      ]
+    },
+    "optional": {
+      "attn_mask": [
+        "MASK"
+      ],
+      "prior_image": [
+        "IMAGE"
+      ]
+    },
+    "hidden": {
+      "unique_id": "UNIQUE_ID"
+    }
+  }
+}
