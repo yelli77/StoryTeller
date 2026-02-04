@@ -41,9 +41,11 @@ export async function POST(request: Request) {
                 }));
 
                 const liveTraits = await analyzeBodyProportions(base64Refs.filter(r => r.startsWith('data:')));
-                if (liveTraits) {
+                if (liveTraits && !config.characterTraits) {
                     console.log(`[API] Live Analysis Success: "${liveTraits}"`);
-                    config.characterTraits = liveTraits; // Inject into config
+                    config.characterTraits = liveTraits; // Only inject if not already present
+                } else if (liveTraits && config.characterTraits) {
+                    console.log(`[API] Static traits already present, skipping live analysis override.`);
                 }
             } catch (err) {
                 console.warn("[API] Live Visual Analysis failed, falling back to static traits.", err);
