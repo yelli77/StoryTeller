@@ -96,7 +96,7 @@ function prepareWorkflow(prompt: string, frames: number, startImageFilename?: st
     return workflow;
 }
 
-function prepareFluxImageWorkflow(prompt: string, referenceImages?: string[], config?: Record<string, any>) {
+function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: string, config?: Record<string, any>) {
     const seed = config?.manualSeed ?? Math.floor(Math.random() * 1000000);
     const steps = config?.steps ?? 25;
     const guidance = config?.guidance ?? 3.5;
@@ -167,15 +167,49 @@ function prepareFluxImageWorkflow(prompt: string, referenceImages?: string[], co
                 "vae": ["12", 0]
             },
             "class_type": "VAEDecode"
-        },
-        "17": {
+        }
+    };
+
+    // Apply Likeness Support if reference image exists
+    if (referenceImageFilename) {
+        workflow["20"] = {
+            "inputs": { "image": referenceImageFilename },
+            "class_type": "LoadImage"
+        };
+        workflow["30"] = {
+            "inputs": {
+                "enabled": true,
+                "input_image": ["16", 0],
+                "swap_model": "inswapper_128.onnx",
+                "facedetection": "retinaface_resnet50",
+                "face_restore_model": "codeformer-v0.1.0.pth",
+                "face_restore_visibility": 1.0,
+                "codeformer_weight": 0.5,
+                "detect_gender_input": "no",
+                "detect_gender_source": "no",
+                "input_faces_index": "0",
+                "source_faces_index": "0",
+                "console_log_level": 1,
+                "source_image": ["20", 0]
+            },
+            "class_type": "ReActorFaceSwap"
+        };
+        workflow["17"] = {
+            "inputs": {
+                "images": ["30", 0],
+                "filename_prefix": "StoryTeller_Flux_Likeness"
+            },
+            "class_type": "SaveImage"
+        };
+    } else {
+        workflow["17"] = {
             "inputs": {
                 "images": ["16", 0],
                 "filename_prefix": "StoryTeller_Flux"
             },
             "class_type": "SaveImage"
-        }
-    };
+        };
+    }
 
     return workflow;
 }
@@ -347,7 +381,7 @@ export async function generateRunpodImage(prompt: string, referenceImages?: stri
                     if (fn) ipAdapterFilenames.push(fn);
                 }
             } else {
-                console.warn("[RunPod] primary reference image not found, continuing without InstantID");
+                console.warn("[RunPod] primary reference image not found, continuing without Likeness");
             }
         }
 
@@ -358,7 +392,7 @@ export async function generateRunpodImage(prompt: string, referenceImages?: stri
         // We ARE CHANGING THE PLAN TO FLUX
         const useFlux = true; // Always use Flux now
         const workflow = useFlux
-            ? prepareFluxImageWorkflow(prompt, referenceImages, config)
+            ? prepareFluxImageWorkflow(prompt, instantIDFilename, config)
             : prepareImageWorkflow(prompt, instantIDFilename, ipAdapterFilenames, config);
 
         const response = await fetch(`${getPodUrl()}/prompt`, {

@@ -1,0 +1,343 @@
+{
+  "easy pulIDApply": {
+    "required": {
+      "model": [
+        "MODEL"
+      ],
+      "pulid_file": [
+        [
+          "pulid_flux_v0.9.0.safetensors"
+        ]
+      ],
+      "insightface": [
+        [
+          "CPU",
+          "CUDA",
+          "ROCM"
+        ]
+      ],
+      "image": [
+        "IMAGE"
+      ],
+      "method": [
+        [
+          "fidelity",
+          "style",
+          "neutral"
+        ]
+      ],
+      "weight": [
+        "FLOAT",
+        {
+          "default": 1,
+          "min": -1,
+          "max": 5,
+          "step": 0.05
+        }
+      ],
+      "start_at": [
+        "FLOAT",
+        {
+          "default": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        }
+      ],
+      "end_at": [
+        "FLOAT",
+        {
+          "default": 1,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        }
+      ]
+    },
+    "optional": {
+      "attn_mask": [
+        "MASK"
+      ]
+    }
+  },
+  "ReActorFaceSwap": {
+    "required": {
+      "enabled": [
+        "BOOLEAN",
+        {
+          "default": true,
+          "label_off": "OFF",
+          "label_on": "ON"
+        }
+      ],
+      "input_image": [
+        "IMAGE"
+      ],
+      "swap_model": [
+        [
+          "inswapper_128.onnx"
+        ]
+      ],
+      "facedetection": [
+        [
+          "retinaface_resnet50",
+          "retinaface_mobile0.25",
+          "YOLOv5l",
+          "YOLOv5n"
+        ]
+      ],
+      "face_restore_model": [
+        [
+          "none",
+          "codeformer-v0.1.0.pth",
+          "GFPGANv1.3.pth",
+          "GFPGANv1.4.pth",
+          "GPEN-BFR-1024.onnx",
+          "GPEN-BFR-2048.onnx",
+          "GPEN-BFR-512.onnx"
+        ]
+      ],
+      "face_restore_visibility": [
+        "FLOAT",
+        {
+          "default": 1,
+          "min": 0.1,
+          "max": 1,
+          "step": 0.05
+        }
+      ],
+      "codeformer_weight": [
+        "FLOAT",
+        {
+          "default": 0.5,
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        }
+      ],
+      "detect_gender_input": [
+        [
+          "no",
+          "female",
+          "male"
+        ],
+        {
+          "default": "no"
+        }
+      ],
+      "detect_gender_source": [
+        [
+          "no",
+          "female",
+          "male"
+        ],
+        {
+          "default": "no"
+        }
+      ],
+      "input_faces_index": [
+        "STRING",
+        {
+          "default": "0"
+        }
+      ],
+      "source_faces_index": [
+        "STRING",
+        {
+          "default": "0"
+        }
+      ],
+      "console_log_level": [
+        [
+          0,
+          1,
+          2
+        ],
+        {
+          "default": 1
+        }
+      ]
+    },
+    "optional": {
+      "source_image": [
+        "IMAGE"
+      ],
+      "face_model": [
+        "FACE_MODEL"
+      ],
+      "face_boost": [
+        "FACE_BOOST"
+      ]
+    },
+    "hidden": {
+      "faces_order": "FACES_ORDER"
+    }
+  },
+  "easy ipadapterApplyFaceIDKolors": {
+    "required": {
+      "model": [
+        "MODEL"
+      ],
+      "image": [
+        "IMAGE"
+      ],
+      "preset": [
+        [
+          "FACEID PLUS KOLORS"
+        ],
+        {
+          "default": "FACEID PLUS KOLORS"
+        }
+      ],
+      "lora_strength": [
+        "FLOAT",
+        {
+          "default": 0.6,
+          "min": 0,
+          "max": 1,
+          "step": 0.01
+        }
+      ],
+      "provider": [
+        [
+          "CPU",
+          "CUDA",
+          "ROCM",
+          "DirectML",
+          "OpenVINO",
+          "CoreML"
+        ],
+        {
+          "default": "CUDA"
+        }
+      ],
+      "weight": [
+        "FLOAT",
+        {
+          "default": 0.8,
+          "min": -1,
+          "max": 3,
+          "step": 0.05
+        }
+      ],
+      "weight_faceidv2": [
+        "FLOAT",
+        {
+          "default": 1,
+          "min": -1,
+          "max": 5,
+          "step": 0.05
+        }
+      ],
+      "weight_kolors": [
+        "FLOAT",
+        {
+          "default": 0.8,
+          "min": -1,
+          "max": 5,
+          "step": 0.05
+        }
+      ],
+      "weight_type": [
+        [
+          "linear",
+          "ease in",
+          "ease out",
+          "ease in-out",
+          "reverse in-out",
+          "weak input",
+          "weak output",
+          "weak middle",
+          "strong middle",
+          "style transfer",
+          "composition",
+          "strong style transfer",
+          "style and composition",
+          "style transfer precise"
+        ]
+      ],
+      "combine_embeds": [
+        [
+          "concat",
+          "add",
+          "subtract",
+          "average",
+          "norm average"
+        ]
+      ],
+      "start_at": [
+        "FLOAT",
+        {
+          "default": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        }
+      ],
+      "end_at": [
+        "FLOAT",
+        {
+          "default": 1,
+          "min": 0,
+          "max": 1,
+          "step": 0.001
+        }
+      ],
+      "embeds_scaling": [
+        [
+          "V only",
+          "K+V",
+          "K+V w/ C penalty",
+          "K+mean(V) w/ C penalty"
+        ]
+      ],
+      "cache_mode": [
+        [
+          "insightface only",
+          "clip_vision only",
+          "ipadapter only",
+          "all",
+          "none"
+        ],
+        {
+          "default": "all"
+        }
+      ],
+      "use_tiled": [
+        "BOOLEAN",
+        {
+          "default": false
+        }
+      ],
+      "use_batch": [
+        "BOOLEAN",
+        {
+          "default": false
+        }
+      ],
+      "sharpening": [
+        "FLOAT",
+        {
+          "default": 0,
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        }
+      ]
+    },
+    "optional": {
+      "image_negative": [
+        "IMAGE"
+      ],
+      "attn_mask": [
+        "MASK"
+      ],
+      "clip_vision": [
+        "CLIP_VISION"
+      ],
+      "optional_ipadapter": [
+        "IPADAPTER"
+      ]
+    }
+  }
+}
