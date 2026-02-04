@@ -1,26 +1,8 @@
 [
   {
     "name": "Pool",
-    "description": "standing deep in a luxury swimming pool with crystal clear water and subtle soft reflections, palm trees and lounge chairs in the background, sun-drenched mediterranean landscape.",
-    "image": "/locations/pool_0.png",
-    "id": "loc_1769604836768"
-  },
-  {
-    "name": "Kitchen",
-    "description": "Eine schöne große moderne Küche mit grill und kochinsel, große terrassenfenster in einer hellen modernen villa. mediterane Landschaft",
-    "image": "/locations/kitchen_1.png",
-    "id": "loc_1769605660817"
-  },
-  {
-    "name": "Wohnzimmer",
-    "description": "Ein schönes großes modernes luxuriöses Wohnzimmer, große Pflanzen, große Terrassenfenster in einer hellen modernen Villa. mediterane Landschaft",
-    "image": "/locations/wohnzimmer_2.png",
-    "id": "loc_1769614928342"
-  },
-  {
-    "name": "Bad",
-    "description": "Ein großes luxuriöses Bad mit Wanne und Regenwalddusche und großen Fenstern, mediterrane Landschaft.",
-    "image": "/locations/bad_3.png",
-    "id": "loc_1769622717259"
+    "description": "a pool in a Mediterranean landscape and a villa in the background",
+    "image": "https://v1ijkn7xjxt1up-8188.proxy.runpod.net/view?filename=StoryTeller_Flux_00004_.png&type=output",
+    "id": "loc_1770196009685"
   }
 ]

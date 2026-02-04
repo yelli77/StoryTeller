@@ -35,6 +35,8 @@ export default function StudioPage() {
     const [ipWeight, setIpWeight] = useState(0.65);
     const [locationWeight, setLocationWeight] = useState(0.6);
     const [steps, setSteps] = useState(15);
+    const [guidance, setGuidance] = useState(3.5);
+    const [pulidWeight, setPulidWeight] = useState(1.0);
 
     useEffect(() => {
         // Load Characters
@@ -56,6 +58,8 @@ export default function StudioPage() {
             if (char.parameters?.ipWeight) setIpWeight(char.parameters.ipWeight);
             if (char.parameters?.locationWeight) setLocationWeight(char.parameters.locationWeight);
             if (char.parameters?.steps) setSteps(char.parameters.steps);
+            if (char.parameters?.guidance) setGuidance(char.parameters.guidance);
+            if (char.parameters?.pulidWeight) setPulidWeight(char.parameters.pulidWeight);
         }
     }, [selectedCharId, characters]);
 
@@ -124,7 +128,9 @@ export default function StudioPage() {
                         instantidWeight,
                         ipWeight,
                         locationWeight,
-                        steps
+                        steps,
+                        guidance,
+                        pulidWeight
                     },
                     locationImage: selectedLoc?.image
                 })
@@ -263,9 +269,29 @@ export default function StudioPage() {
                                 <span className="text-gray-400 text-xs font-mono bg-gray-800 px-2 py-0.5 rounded">{steps}</span>
                             </div>
                             <input
-                                type="range" min="4" max="25" step="1"
+                                type="range" min="4" max="50" step="1"
                                 value={steps} onChange={e => setSteps(parseInt(e.target.value))}
                                 className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-gray-500"
+                            />
+
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Guidance (Flux)</label>
+                                <span className="text-[var(--primary)] text-xs font-mono bg-[var(--primary)]/10 px-2 py-0.5 rounded">{guidance.toFixed(1)}</span>
+                            </div>
+                            <input
+                                type="range" min="1.0" max="10.0" step="0.1"
+                                value={guidance} onChange={e => setGuidance(parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[var(--primary)]"
+                            />
+
+                            <div className="flex justify-between items-center">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Native PuLID Likeness</label>
+                                <span className="text-[var(--primary)] text-xs font-mono bg-[var(--primary)]/10 px-2 py-0.5 rounded">{pulidWeight.toFixed(2)}</span>
+                            </div>
+                            <input
+                                type="range" min="0.1" max="2.0" step="0.05"
+                                value={pulidWeight} onChange={e => setPulidWeight(parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-[var(--primary)]"
                             />
                         </div>
 

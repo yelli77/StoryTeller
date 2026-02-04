@@ -8,8 +8,14 @@
     "image": "/uploads/1769946501745-image_(1).jpg",
     "isCamera": false,
     "visualConfig": {
-      "positivePrompt": "clara_character, young woman, golden-brown hair, glasses, gray tank top, voluptuous hourglass figure, large bust, flat stomach, wide hips, soft curves, (accurate facial features:1.4)",
-      "negativePrompt": "(green clothing:1.5), (blue clothing:1.5), (teal:1.5), (turquoise:1.5), (naked:2.0), (nude:2.0), (generated sunglasses:1.5), (tinted glasses:1.4), (sequins:1.5), (sparkles:1.5), (shiny fabric:1.4), (wet look:1.2), (blue clothing:1.4), (unclothed:2.0), (exposed breasts:2.0), (cleavage:1.5), (lingerie:1.8), (long sleeves:1.6), (buttons:1.6), (sleeves:1.5)"
+      "positivePrompt": "clara_character, young woman, golden-brown hair, wearing glasses, (huge breasts:1.7), (curvy:1.5), (very wide hips:1.3), (slim waist:1.1), (thick thighs:1.4), (soft body:1.3), (fleshy:1.1), (straight hair:1.2), (round soft face:1.2), masterpiece, high-end studio photograph, sharp focus",
+      "negativePrompt": "(green clothing:1.5), (blue clothing:1.5), (teal:1.5), (turquoise:1.5), (naked:2.0), (nude:2.0), (generated sunglasses:1.5), (tinted glasses:1.4), (unclothed:2.0), (exposed breasts:2.0), (cleavage:1.5), (lingerie:1.8)"
+    },
+    "parameters": {
+      "steps": 25,
+      "guidance": 3.5,
+      "pulidWeight": 1.0,
+      "fusion": "mean"
     },
     "referenceImages": [
       "/characters/clara/ref/ref_1.png",

@@ -97,9 +97,10 @@ function prepareWorkflow(prompt: string, frames: number, startImageFilename?: st
 }
 
 function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: string, config?: Record<string, any>) {
+    const params = config?.parameters || {};
     const seed = config?.manualSeed ?? Math.floor(Math.random() * 1000000);
-    const steps = config?.steps ?? 25;
-    const guidance = config?.guidance ?? 3.5;
+    const steps = config?.steps ?? params.steps ?? 25;
+    const guidance = config?.guidance ?? params.guidance ?? 3.5;
     const width = config?.width ?? 1024;
     const height = config?.height ?? 1024;
 
@@ -187,10 +188,10 @@ function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: strin
                 "eva_clip": ["31", 0],
                 "face_analysis": ["32", 0],
                 "image": ["20", 0],
-                "weight": 1.0,
+                "weight": config?.pulidWeight ?? params.pulidWeight ?? 1.0,
                 "start_at": 0.0,
                 "end_at": 1.0,
-                "fusion": "mean",
+                "fusion": config?.fusion ?? params.fusion ?? "mean",
                 "fusion_weight_max": 1.0,
                 "fusion_weight_min": 0.0,
                 "train_step": 1000,
