@@ -1,7 +1,9 @@
 CLIP1:
+EVA02_CLIP_L_336_psz14_s6B.pt
 clip_l.safetensors
 t5xxl_fp8_e4m3fn.safetensors
 
 CLIP2:
+EVA02_CLIP_L_336_psz14_s6B.pt
 clip_l.safetensors
 t5xxl_fp8_e4m3fn.safetensors

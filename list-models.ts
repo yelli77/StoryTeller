@@ -1,4 +1,3 @@
-
 const API_KEY = "AIzaSyA1RbyaEJPyFR7A-DeW4ELRC1OnEZapNTE";
 
 async function listModels() {
@@ -16,7 +15,7 @@ async function listModels() {
 
         if (data.models) {
             console.log("Available Models:");
-            data.models.forEach(m => console.log(`- ${m.name} (${m.supportedGenerationMethods})`));
+            data.models.forEach((m: any) => console.log(`- ${m.name} (${m.supportedGenerationMethods})`));
         } else {
             console.log("No models found or error structure:", data);
         }
@@ -27,3 +26,5 @@ async function listModels() {
 }
 
 listModels();
+
+export { };

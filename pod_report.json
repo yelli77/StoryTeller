@@ -1,0 +1,11 @@
+{
+  "CheckpointLoaderSimple": 1,
+  "UNETLoader": 1,
+  "VAELoader": 2,
+  "LoraLoader": 2,
+  "CLIPVisionLoader": 0,
+  "ControlNetLoader": 0,
+  "IPAdapterModelLoader": "MISSING",
+  "DiffusionModelLoaderKJ": 1,
+  "VAELoaderKJ": 2
+}

@@ -1,7 +1,7 @@
 
 const API_KEY = "AIzaSyA1RbyaEJPyFR7A-DeW4ELRC1OnEZapNTE";
 
-async function generateImage(prompt) {
+async function generateImage(prompt: string) {
     if (!API_KEY) {
         console.log("No API Key");
         return null;
@@ -53,3 +53,5 @@ async function generateImage(prompt) {
 }
 
 generateImage("A futuristic city skyline at night with neon lights");
+
+export { };

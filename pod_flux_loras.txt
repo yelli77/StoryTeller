@@ -1,0 +1,1 @@
+Xlabs-AI_flux-RealismLora.safetensors
