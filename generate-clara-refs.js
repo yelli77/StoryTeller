@@ -94,17 +94,20 @@ function constructWorkflow(posePrompt, uploadedImageName, seed) {
     const qualitySuffix = "highly detailed, 8k, masterpiece, soft studio lighting, sharp focus";
     const outfit = "wearing a tight simple grey bodysuit"; // Neutral outfit for anatomical refs
 
-    // Intelligent Weighting: Lower PuLID weight for profiles/back views to allow rotation
+    // Intelligent Weighting: Aggressive 'end_at' reduction to force head rotation
     let pulidStrength = 0.95;
-    let projectionStrength = 0.8;
+    let pulidEndAt = 0.9;
 
     const pText = posePrompt.toLowerCase();
     if (pText.includes("back view") || pText.includes("looking away") || pText.includes("from behind") || pText.includes("back of head")) {
-        pulidStrength = 0.45; // Back needs very low influence
+        pulidStrength = 0.55;
+        pulidEndAt = 0.3; // Stop very early for back views
     } else if (pText.includes("profile") || pText.includes("side view") || pText.includes("look over shoulder")) {
-        pulidStrength = 0.6; // Profiles need lower influence to turn head
+        pulidStrength = 0.65;
+        pulidEndAt = 0.45; // Stop early for profiles to allow turn
     } else if (pText.includes("3/4") || pText.includes("three quarter")) {
-        pulidStrength = 0.75; // Slight turn needs slight reduction
+        pulidStrength = 0.85;
+        pulidEndAt = 0.6; // Slight reduction for 3/4
     }
 
     // Structure: Style + Identity + Traits + Action + Quality
@@ -134,7 +137,7 @@ function constructWorkflow(posePrompt, uploadedImageName, seed) {
                 "image": ["20", 0],
                 "weight": pulidStrength,
                 "start_at": 0.0,
-                "end_at": 0.9,
+                "end_at": pulidEndAt,
                 "fusion": "mean",
                 "fusion_weight_max": 1.0,
                 "fusion_weight_min": 0.0,
