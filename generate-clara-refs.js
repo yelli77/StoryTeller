@@ -94,6 +94,19 @@ function constructWorkflow(posePrompt, uploadedImageName, seed) {
     const qualitySuffix = "highly detailed, 8k, masterpiece, soft studio lighting, sharp focus";
     const outfit = "wearing a tight simple grey bodysuit"; // Neutral outfit for anatomical refs
 
+    // Intelligent Weighting: Lower PuLID weight for profiles/back views to allow rotation
+    let pulidStrength = 0.95;
+    let projectionStrength = 0.8;
+
+    const pText = posePrompt.toLowerCase();
+    if (pText.includes("back view") || pText.includes("looking away") || pText.includes("from behind") || pText.includes("back of head")) {
+        pulidStrength = 0.45; // Back needs very low influence
+    } else if (pText.includes("profile") || pText.includes("side view") || pText.includes("look over shoulder")) {
+        pulidStrength = 0.6; // Profiles need lower influence to turn head
+    } else if (pText.includes("3/4") || pText.includes("three quarter")) {
+        pulidStrength = 0.75; // Slight turn needs slight reduction
+    }
+
     // Structure: Style + Identity + Traits + Action + Quality
     const posPrompt = `${photoStyle}, ${CLARA_IDENTITY}, ${CLARA_TRAITS}, ${posePrompt}, ${outfit}, ${qualitySuffix}`;
 
@@ -119,9 +132,9 @@ function constructWorkflow(posePrompt, uploadedImageName, seed) {
                 "eva_clip": ["31", 0],
                 "face_analysis": ["32", 0],
                 "image": ["20", 0],
-                "weight": 1.0,
+                "weight": pulidStrength,
                 "start_at": 0.0,
-                "end_at": 1.0,
+                "end_at": 0.9,
                 "fusion": "mean",
                 "fusion_weight_max": 1.0,
                 "fusion_weight_min": 0.0,
