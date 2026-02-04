@@ -313,15 +313,23 @@ export default function StudioPage() {
                         </button>
                     </div>
 
-                    {/* Preview of Final Prompt (Transparency) */}
-                    <div className="bg-black/40 border border-gray-800 p-4 rounded-xl text-xs space-y-2">
-                        <p className="text-gray-500 font-bold">SYSTEM PROMPT (SENT TO ENGINE):</p>
-                        <p className="text-gray-400 font-mono italic">
-                            (Quality Prefix...),
-                            {customPrompt || '[Action Prompt]'},
-                            {selectedChar && ` [Physique: ${selectedChar.traits}]`},
-                            {selectedLoc && ` at ${selectedLoc.name}`}
-                        </p>
+                    <div className="bg-black/40 border border-gray-800 p-4 rounded-xl text-[10px] space-y-3 font-mono">
+                        <div>
+                            <p className="text-gray-500 font-bold mb-1 uppercase tracking-tighter">POSITIVE ENGINE PROMPT:</p>
+                            <p className="text-gray-400 italic leading-relaxed">
+                                (Quality...),
+                                {selectedChar?.visualConfig?.positivePrompt && <span className="text-[var(--primary)]">{selectedChar.visualConfig.positivePrompt}</span>}
+                                {customPrompt && <>, <span className="text-white">{customPrompt}</span></>}
+                                {selectedLoc && <>, at <span className="text-[var(--secondary)]">{selectedLoc.name}</span></>}
+                                {selectedChar?.traits && <>, [Physique: <span className="text-gray-500">{selectedChar.traits}</span>]</>}
+                            </p>
+                        </div>
+                        {selectedChar?.visualConfig?.negativePrompt && (
+                            <div>
+                                <p className="text-red-900/50 font-bold mb-1 uppercase tracking-tighter">NEGATIVE EXCLUSIONS:</p>
+                                <p className="text-red-900/40 italic leading-relaxed">{selectedChar.visualConfig.negativePrompt}</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

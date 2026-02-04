@@ -150,6 +150,15 @@ function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: strin
             },
             "class_type": "CLIPTextEncodeFlux"
         },
+        "18": {
+            "inputs": {
+                "clip_l": config?.negativePrompt || "",
+                "t5xxl": config?.negativePrompt || "",
+                "guidance": guidance,
+                "clip": ["11", 0]
+            },
+            "class_type": "CLIPTextEncodeFlux"
+        },
         "16": {
             "inputs": {
                 "samples": ["15", 0],
@@ -233,7 +242,7 @@ function prepareFluxImageWorkflow(prompt: string, referenceImageFilename?: strin
             "denoise": 1.0,
             "model": finalModel,
             "positive": ["14", 0],
-            "negative": ["14", 0],
+            "negative": ["18", 0],
             "latent_image": ["13", 0]
         },
         "class_type": "KSampler"
