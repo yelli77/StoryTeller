@@ -10,7 +10,20 @@ const CHARACTERS = [
     {
         name: 'Clara',
         filename: '1769946490115-image_(1).jpg',
-        desc: "(extreme hourglass figure:1.2), (huge breasts:1.7), (curvy:1.5), (very wide hips:1.3), (slim waist:1.1), (thick thighs:1.4), (soft body:1.3), (fleshy:1.1), (straight hair:1.2), (round soft face:1.2), long honey-brown hair, glasses, soft pretty facial features"
+        identity: "clara_character",
+        traits: "(extreme hourglass figure:1.2), (huge breasts:1.7), (curvy:1.5), (very wide hips:1.3), (slim waist:1.1), (thick thighs:1.4), (soft body:1.3), (fleshy:1.1), (straight hair:1.2), (round soft face:1.2), long honey-brown hair, glasses, soft pretty facial features"
+    },
+    {
+        name: 'Emily',
+        filename: '1770048788120-image_(2).jpg',
+        identity: "emily_character",
+        traits: "young woman, dark hair, pink sleeveless top, (highly detailed face:1.3), very large heavy breasts, slender fit body, athletic build, round toned glutes"
+    },
+    {
+        name: 'Mia',
+        filename: '1770048915028-image_(3).jpg',
+        identity: "mia_character",
+        traits: "young woman, dark hair, (highly detailed face:1.3), pink v-neck top, dramatic expression, slender build"
     }
 ];
 
@@ -69,8 +82,11 @@ async function uploadImage(localPath, remoteName) {
 
 function constructFluxPuLIDWorkflow(posePrompt, outfitPrompt, character, uploadedImageName) {
     const seed = Math.floor(Math.random() * 1000000);
-    // Flux Dev likes natural language
-    const posPrompt = `(photo:1.2), high-end studio photograph of a woman, ${character.desc}, ${posePrompt}, ${outfitPrompt}, masterpeice, 8k, extremely detailed, soft lighting, sharp focus`;
+    const photoStyle = "(photo:1.3), high-end studio photograph";
+    const qualitySuffix = "highly detailed, 8k, masterpiece, soft studio lighting, sharp focus";
+
+    // Structure: Style + Identity + Traits + Action + Quality
+    const posPrompt = `${photoStyle}, ${character.identity}, ${character.traits}, ${posePrompt}, ${outfitPrompt}, ${qualitySuffix}`;
 
     return {
         // 1. Core Flux Models
