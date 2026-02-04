@@ -37,6 +37,8 @@ export default function StudioPage() {
     const [steps, setSteps] = useState(15);
     const [guidance, setGuidance] = useState(3.5);
     const [pulidWeight, setPulidWeight] = useState(1.0);
+    const [charPositive, setCharPositive] = useState('');
+    const [charNegative, setCharNegative] = useState('');
 
     useEffect(() => {
         // Load Characters
@@ -54,12 +56,11 @@ export default function StudioPage() {
     useEffect(() => {
         const char = characters.find(c => c.id === selectedCharId);
         if (char) {
-            if (char.parameters?.instantidWeight) setInstantidWeight(char.parameters.instantidWeight);
-            if (char.parameters?.ipWeight) setIpWeight(char.parameters.ipWeight);
-            if (char.parameters?.locationWeight) setLocationWeight(char.parameters.locationWeight);
             if (char.parameters?.steps) setSteps(char.parameters.steps);
             if (char.parameters?.guidance) setGuidance(char.parameters.guidance);
             if (char.parameters?.pulidWeight) setPulidWeight(char.parameters.pulidWeight);
+            setCharPositive(char.visualConfig?.positivePrompt || '');
+            setCharNegative(char.visualConfig?.negativePrompt || '');
         }
     }, [selectedCharId, characters]);
 
@@ -123,14 +124,15 @@ export default function StudioPage() {
                     prompt: finalPrompt,
                     referenceImages,
                     visualConfig: {
-                        ...(mergedConfig || {}),
-                        characterTraits: selectedChar?.traits,
                         instantidWeight,
                         ipWeight,
                         locationWeight,
                         steps,
                         guidance,
-                        pulidWeight
+                        pulidWeight,
+                        positivePrompt: charPositive,
+                        negativePrompt: charNegative,
+                        characterTraits: selectedChar?.traits
                     },
                     locationImage: selectedLoc?.image
                 })
@@ -225,11 +227,31 @@ export default function StudioPage() {
                         <div className="space-y-3">
                             <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">Action Prompt</label>
                             <textarea
-                                className="w-full bg-black/50 border border-gray-700 rounded-xl p-4 text-white h-32 focus:border-[var(--primary)] focus:outline-none transition-colors"
+                                className="w-full bg-black/50 border border-gray-700 rounded-xl p-4 text-white h-24 text-sm focus:border-[var(--primary)] focus:outline-none transition-colors"
                                 placeholder="Describe exactly what happens... (e.g. smiling at camera, holding a cup of coffee)"
                                 value={customPrompt}
                                 onChange={e => setCustomPrompt(e.target.value)}
                             />
+                        </div>
+
+                        {/* Base Identity & Negative Edit */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Base Identity Prompt</label>
+                                <textarea
+                                    className="w-full bg-black/50 border border-gray-800 rounded-lg p-2 text-[10px] text-gray-400 h-20 focus:border-[var(--primary)] focus:outline-none transition-colors"
+                                    value={charPositive}
+                                    onChange={e => setCharPositive(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Base Exclusions (Negative)</label>
+                                <textarea
+                                    className="w-full bg-black/50 border border-gray-800 rounded-lg p-2 text-[10px] text-red-900/40 h-20 focus:border-red-900/50 focus:outline-none transition-colors font-mono"
+                                    value={charNegative}
+                                    onChange={e => setCharNegative(e.target.value)}
+                                />
+                            </div>
                         </div>
 
                         {/* Technical Tuning */}
@@ -317,18 +339,18 @@ export default function StudioPage() {
                         <div>
                             <p className="text-gray-500 font-bold mb-1 uppercase tracking-tighter">POSITIVE ENGINE PROMPT:</p>
                             <p className="text-gray-400 italic leading-relaxed">
-                                <span className="opacity-50">(Style: Photo 1.3...), </span>
-                                {selectedChar?.visualConfig?.positivePrompt && <><span className="text-[var(--primary)]">{selectedChar.visualConfig.positivePrompt}</span>, </>}
+                                <span className="opacity-50">(Style: Photo 1.3), </span>
+                                {charPositive && <><span className="text-[var(--primary)]">{charPositive}</span>, </>}
                                 {selectedChar?.traits && <><span className="text-gray-500">{selectedChar.traits}</span>, </>}
                                 {customPrompt ? <><span className="text-white">{customPrompt}</span></> : <span className="opacity-30">[Action Prompt]</span>}
                                 {selectedLoc && <>, at <span className="text-[var(--secondary)]">{selectedLoc.name}</span></>}
-                                <span className="opacity-50">, (Quality Suffix...)</span>
+                                <span className="opacity-50">, (Quality: 8k, Detailed...)</span>
                             </p>
                         </div>
-                        {selectedChar?.visualConfig?.negativePrompt && (
+                        {charNegative && (
                             <div>
-                                <p className="text-red-900/50 font-bold mb-1 uppercase tracking-tighter">NEGATIVE EXCLUSIONS:</p>
-                                <p className="text-red-900/40 italic leading-relaxed">{selectedChar.visualConfig.negativePrompt}</p>
+                                <p className="text-red-900/50 font-bold mb-1 uppercase tracking-tighter">ENGINE NEGATIVE (EXCLUSIONS):</p>
+                                <p className="text-red-900/40 italic leading-relaxed">{charNegative}</p>
                             </div>
                         )}
                     </div>
