@@ -39,7 +39,24 @@ const PROMPTS = [
     { name: "17_Leaning_Wall", text: "leaning back against a white wall, relaxed, hands behind back, full body" },
     { name: "18_Arms_Crossed", text: "standing front view, arms crossed under chest, confident expression" },
     { name: "19_Silhouette", text: "strong silhouette lighting, standing front view, outlining hourglass figure and curves" },
-    { name: "20_Passport", text: "passport style photo, dead center front, neck up, neutral lighting, flat background" }
+    { name: "20_Passport", text: "passport style photo, dead center front, neck up, neutral lighting, flat background" },
+
+    // --- NEW: HEAD & FACE SPECIFIC ANGLES ---
+    { name: "21_Head_Front_Macro", text: "macro shot of face, front view, focus on eyes and skin texture, neutral expression" },
+    { name: "22_Head_Profile_Left", text: "headshot, strict side profile view looking left, neutral expression, focus on nose and jawline" },
+    { name: "23_Head_Profile_Right", text: "headshot, strict side profile view looking right, neutral expression, focus on nose and jawline" },
+    { name: "24_Head_3Q_Left", text: "head and shoulders portrait, 3/4 view looking left, soft lighting" },
+    { name: "25_Head_3Q_Right", text: "head and shoulders portrait, 3/4 view looking right, soft lighting" },
+    { name: "26_Head_Back", text: "close up of back of head, showing hair texture and style, no face visible" },
+    { name: "27_Head_Chin_Up", text: "close up face, tilting head back looking up, showing neck, confident" },
+    { name: "28_Head_Chin_Down", text: "close up face, tilting head down, looking up through eyebrows, shy or intense" },
+    { name: "29_Head_Top_Down", text: "extreme high angle close up looking down at face, focus on eyelashes and nose bridge" },
+    { name: "30_Head_Bottom_Up", text: "extreme low angle close up looking up at chin and jawline, dominance" },
+    { name: "31_Expression_Laugh", text: "close up face, laughing naturally, eyes closed slightly, showing teeth" },
+    { name: "32_Expression_Serious", text: "close up face, very serious intensity, direct eye contact" },
+    { name: "33_Hair_Movement", text: "close up headshot, wind blowing hair across face, dynamic hair motion" },
+    { name: "34_Glasses_Reflection", text: "close up face with glasses, reflections in lenses, studio lighting" },
+    { name: "35_Beauty_Portrait", text: "beauty portrait, perfect soft lighting, rembrandt lighting, detailed makeup and skin" }
 ];
 
 // Helper to upload image
