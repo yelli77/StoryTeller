@@ -1,0 +1,59 @@
+---
+job: extension
+config:
+  # Name of the training run (outputs will be saved in /workspace/training/output/clara_v1)
+  name: "clara_v1"
+  process:
+    - type: 'sd_trainer'
+      training_folder: "/workspace/training/output"
+      device: cuda:0
+      trigger_word: "clara_character"
+      network:
+        type: "lora"
+        linear: 16
+        linear_alpha: 16
+      save:
+        dtype: float16
+        save_every: 250
+        max_step_saves_to_keep: 10
+      datasets:
+        - folder_path: "/workspace/training/clara_v1/img"
+          caption_ext: "txt"
+          caption_dropout_rate: 0.05
+          shuffle_tokens: false
+          cache_latents_to_disk: true
+          resolution: [512, 768, 1024]
+      train:
+        batch_size: 1
+        steps: 2500
+        gradient_accumulation_steps: 1
+        train_unet: true
+        train_text_encoder: false
+        content_or_style: "balanced"
+        gradient_checkpointing: true
+        noise_scheduler: "flowmatch"
+        optimizer: "adamw8bit"
+        lr: 4e-4
+        ema_config:
+          use_ema: true
+          ema_decay: 0.99
+        dtype: bf16
+      model:
+        # Standard Flux Dev model from HF (Requires Login or Token)
+        name_or_path: "black-forest-labs/FLUX.1-dev"
+        is_flux: true
+        quantize: true
+      sample:
+        sampler: "flowmatch"
+        sample_every: 250
+        width: 1024
+        height: 1024
+        prompts:
+          - "clara_character, standing in a modern office, suit, arms crossed, confident"
+          - "clara_character, close up portrait, soft lighting, detailed face, looking at camera"
+          - "clara_character, walking away, back view, jeans and tshirt, ponytail"
+        neg: "bad anatomy, blurry, low quality"
+        seed: 42
+        walk_seed: true
+        guidance_scale: 3.5
+        sample_steps: 20

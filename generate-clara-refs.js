@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: '.env.local' });
 
-const POD_ID = process.env.RUNPOD_POD_ID || 'v1ijkn7xjxt1up';
+const POD_ID = process.env.RUNPOD_POD_ID || 'pqbjc5hazol1qw';
 const BASE_URL = `https://${POD_ID}-8188.proxy.runpod.net`;
 
 // Configuration

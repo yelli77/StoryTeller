@@ -1,60 +1,53 @@
 #!/bin/bash
+echo "🚀 Starting StoryTeller Environment Setup..."
 
-# ComfyUI Pod Restoration Script
-# Sets up ComfyUI-Manager, PuLID Flux, and required models
-
-echo "🚀 Starting Pod Restoration..."
-
-# 1. Directories
-mkdir -p /workspace/ComfyUI/custom_nodes
-mkdir -p /workspace/ComfyUI/models/pulid
-mkdir -p /workspace/ComfyUI/models/clip_vision
-mkdir -p /workspace/ComfyUI/models/insightface
-
-# 2. Custom Nodes
-echo "📥 Installing Custom Nodes..."
+# Navigate to ComfyUI
 cd /workspace/ComfyUI/custom_nodes
 
+# 1. Install ComfyUI-Manager (Essential)
 if [ ! -d "ComfyUI-Manager" ]; then
+    echo "📦 Installing ComfyUI-Manager..."
     git clone https://github.com/ltdrdata/ComfyUI-Manager.git
 else
     echo "✅ ComfyUI-Manager already installed."
 fi
 
-# Use the Enhanced version of PuLID Flux (often more stable/featured)
-echo "🧹 Cleaning up previous PuLID attempts..."
-rm -rf ComfyUI_PulID_Flux ComfyUI-PuLID-Flux ComfyUI_PulID
+# 1.5. Install Prerequisites (InsightFace & ONNX)
+echo "🔧 Installing InsightFace & ONNX Runtime (Critical for PuLID)..."
+pip install insightface onnxruntime-gpu
 
-echo "📥 Cloning PuLID Flux Enhanced..."
-git clone https://github.com/sipie800/ComfyUI-PuLID-Flux-Enhanced.git ComfyUI-PuLID-Flux
+# 2. Install PuLID Flux (Native Identity)
+if [ ! -d "ComfyUI-PuLID-Flux" ]; then
+    echo "📦 Installing ComfyUI-PuLID-Flux..."
+    git clone https://github.com/balazik/ComfyUI-PuLID-Flux.git
+    cd ComfyUI-PuLID-Flux
+    pip install -r requirements.txt
+    cd ..
+else
+    echo "✅ PuLID Flux already installed."
+fi
 
-echo "📦 Installing Python dependencies..."
-cd ComfyUI-PuLID-Flux
-python3 -m pip install -r requirements.txt
+# 3. Apply Patch for Flux Guidance (If needed, typically managed by ComfyUI updates now)
+
+# 4. Download Weights
+echo "⬇️  Downloading Models..."
+cd /workspace/ComfyUI/models
+
+# PuLID
+mkdir -p pulid
+cd pulid
+if [ ! -f "pulid_flux_v0.9.0.safetensors" ]; then
+    wget -O pulid_flux_v0.9.0.safetensors https://huggingface.co/guozinan/PuLID/resolve/main/pulid_flux_v0.9.0.safetensors
+fi
 cd ..
 
-# 3. Models
-echo "📥 Downloading Models (this may take a few minutes)..."
-
-# PuLID Flux Model
-if [ ! -f "/workspace/ComfyUI/models/pulid/pulid_flux_v0.9.0.safetensors" ]; then
-    wget -O /workspace/ComfyUI/models/pulid/pulid_flux_v0.9.0.safetensors https://huggingface.co/balmung77/Flux/resolve/main/pulid_flux_v0.9.0.safetensors
+# InsightFace
+mkdir -p insightface/models
+cd insightface/models
+if [ ! -f "antelopev2.zip" ]; then
+    wget https://github.com/deepinsight/insightface/releases/download/v0.7/antelopev2.zip
+    unzip antelopev2.zip
 fi
+cd ../..
 
-# CLIP Vision / Eva-CLIP (Vit-H is used by PuLID)
-if [ ! -f "/workspace/ComfyUI/models/clip_vision/clip_vision_vit_h.safetensors" ]; then
-    wget -O /workspace/ComfyUI/models/clip_vision/clip_vision_vit_h.safetensors https://huggingface.co/h94/IP-Adapter/resolve/main/models/image_encoder/model.safetensors
-fi
-
-# Some versions/nodes expect this exact filename
-if [ ! -f "/workspace/ComfyUI/models/clip_vision/EVA02_CLIP_H_14_336_fp16.safetensors" ]; then
-    cp /workspace/ComfyUI/models/clip_vision/clip_vision_vit_h.safetensors /workspace/ComfyUI/models/clip_vision/EVA02_CLIP_H_14_336_fp16.safetensors
-fi
-
-# InsightFace Model
-if [ ! -f "/workspace/ComfyUI/models/insightface/inswapper_128.onnx" ]; then
-    wget -O /workspace/ComfyUI/models/insightface/inswapper_128.onnx https://huggingface.co/ezioruan/inswapper_128.onnx/resolve/main/inswapper_128.onnx
-fi
-
-echo "✅ Installation Complete."
-echo "🔄 Please restart your ComfyUI Pod now."
+echo "✅ Setup Complete! Please restart ComfyUI."
